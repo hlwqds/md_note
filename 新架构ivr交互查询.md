@@ -32,7 +32,7 @@ api->apd: 接收成功
 api->客户服务器: 根据apd的推送封装消息\n并且发给客户
 客户服务器->api: 返回对应的ivr参数
 api-->cr_web: 封装消息，将对应的消息交给cr_web\n并由其转发给cr
-cr_web-->api:cr_web响应成功（响应时机？）
+cr_web-->api:cr_web响应成功
 ```
 
 ## 3 消息定义
@@ -88,8 +88,8 @@ cr_web-->api:cr_web响应成功（响应时机？）
     "inputKeys" : "1000",
     "variables" : [
 	    {"id_number" : "110108198703127621" },
-		{:"name" :"" },
-		{"address":"" }
+		{"name": "" },
+		{"address": "" }
 	]
 }
 ```
@@ -115,7 +115,7 @@ cr_web-->api:cr_web响应成功（响应时机？）
     "inputKeys" : "1000",
     "variables" : [
 	    {"id_number" : "110108198703127621" },
-		{:"name" :"" },
+		{"name" :"" },
 		{"address":"" }
 	]
 }
@@ -165,11 +165,11 @@ cr_web-->api:cr_web响应成功（响应时机？）
 
 1. 根据ccgeid从企业表中获取企业信息
 
-根据ccgeid获取企业信息，我们不需要通过callId或者总机号才能获取到企业信息，需要注意的是。后面处理时还会尝试获取一次企业的详细信息，对于新架构，我们需要将企业的信息发送过去，以减少一次数据库操作（enterprise结构体的大小显然对于推送的消息队列来说过于庞大了，我还是妥协后面再一次获取企业的信息）。
+根据ccgeid获取企业信息，我们不需要通过callId或者总机号才能获取到企业信息，需要注意的是。后面处理时还会尝试获取一次企业的详细信息，对于新架构，我们需要将企业的信息发送过去，以减少一次数据库操作（但是enterprise结构体的大小显然对于推送的消息队列来说过于庞大了）。
 
 
 
-2. 新架构的通用ivr交互新增了部分通用字段，这些字段api必须转发给客户。需要新增一个结构体用来存储这些信息
+2. 新架构的通用ivr交互新增了部分通用字段，有些字段api必须转发给客户。需要新增一个结构体用来存储这些信息
 
 | 通话类型 | IVR流程      | callType | caller     | callerType | called     | calledType |
 | -------- | ------------ | -------- | ---------- | ---------- | ---------- | ---------- |
@@ -262,6 +262,8 @@ typedef struct __push_post_data__
 
 ### 3.2 api->用户服务器
 
+请求格式和用户响应格式由客户进行配置，可以是json或者xml
+
 #### 3.2.1 请求客户
 
 1. 99/98 99和98向客户的请求信息保持不变
@@ -273,38 +275,37 @@ typedef struct __push_post_data__
     'accountSid':'c5dc4b87f33ef2ef37c8e974793ad8e5',
     'caller':'18769874345',
     'path':'1-2',
-    'callType':99,
     'type':0,
+    'callType':99,
     'useNumber':'02566687987',
     'switchNumber' : "02566699794",
-    'userData':FE87D3
+    'userData':"FE87D3"
 }
 ```
 
 2. 95,96和97消息需要使用新架构新的消息格式
 
+新架构的查询场景不再限于呼入场景，api客户可能需要知道主叫或被叫是坐席还是客户，callType需要传给客户
+
 ```json
 {
     "type" : 95/96/97,
-    "ccgeid" : 1576,
+    //"initialCallType": 1, 
+    //一开始发起的通话类型
+    "callType" : 1,
+	"accountSid": "c5dc4b87f33ef2ef37c8e974793ad8e5",
+    "subAccountSid": "c5dc4b87f33ef2ef37c8e974793ad8e5",
     "callId" : "apixxxxxxxxxxxx",
-    "ccNumber" : "13260278209conf0_1519439781636",
-    "callType" : 0,
-    "ivrFlowId" : 245,
-    "ivrQueryId" : 1,
     "caller" : "13260278209",
-    "callerType" : 1,
-    "switchNumber" : "02566699794",
     "called" : "1001",
-    "calledType" : 2,
-    "timestamp" : "1519439787",
+    "useNumber" : "02566699794",
     "userQueryId" : "id_0000001",
     "inputKeys" : "1000",
     "variables" : [
 	    {"id_number" : "110108198703127621" },
 		{"name" :"" },
 		{"address":"" }
-	]
+	],
 }
 说明：在上例中，有3个全局变量：id_number、name和address，id_number已经赋值，name和address未赋值，需要用户服务器返回，并在IVR其它节点中引用。
 ```
@@ -312,7 +313,68 @@ typedef struct __push_post_data__
 
 
 #### 3.2.2 客户响应
-actionType
+
+1. 98/99返回数据
+
+```json
+{
+    //0:允许通话，否则失败
+    "retcode": 0,
+    //返回被叫
+    "action": 0,
+    "called": "1****211",
+    "number": "1002",
+    "workNumber": "test",
+    "waitTime": 20,
+    "outNumber":"02566687**1",
+    "reason": "原因描述",
+    "userdata": "用户数据"
+}
+//其中number>workNumber>called,这三个都是被叫选项，三者选一。被叫如果传多个，会按顺序拨打直至拨打完毕
+```
+
+2. 95/96/97
+
+```json
+{
+    "retcode": 0,
+    //客户响应数据都将透传给cr，具体含义见api->cr_web的定义
+    //可以为空，也可以和请求保重的userQueryId相同，也可以不同
+    //不为空时，下次的交互查询节点会直接赋值userQueryId
+	"userQueryId":"id_0000002",
+    
+    //variables是请求包中variables的子集，需要赋值的参数必须要通过这个列表中返回
+	"variables": [
+	    {"id_number" : "110108198703127621" },
+		{"name" :"" },
+		{"address":"" }
+    ],
+    //虚拟键值，交互收键模式时的响应参数
+    "virtualKey":"1111",
+    //用户返回的下一步参数，这个数据应当由api透传给cr，现cr已经定义好响应数据，所以和需求文档中的格式略有不同，具体数据参数见api->cr_web的消息定义
+	"nextAction" : {
+	    "action" : 1,
+		"paras" : {
+		    "voiceId" : "播放语音文件id",
+			"voiceName" : "播放语音文件唯一名称",
+			"allowBreak" : "是否允许打断: 0-不允许 1-允许"
+		}
+	},
+    "userData":"FE87D3"
+}
+```
+
+
+
+### 3.3 api->cr_web
+
+新架构cr采用统一的json格式，所以不管是95、96、97、98还是99，api需要将客户返回的消息转换成cr需要的格式
+
+以下是cr根据action定义的响应消息内容，95、96、98、99需要根据这些重新生成给cr的响应，然后通过cr_web透传给cr
+
+为方便路由，要求将ccgeid和cc_number作为头域参数
+
+action
 
 ```c
 typedef enum
@@ -328,34 +390,66 @@ typedef enum
 }IvrActionType;
 ```
 
-##### 3.2.2.1 放音响应
+#### 3.3.1 交互收键模式响应消息
+
+```json
+{
+    "rspCode" : 0,
+    “type” : “95”,
+    “ccgeid” : “124”,
+	"userQueryId" : "id_0000001",
+    “ccNumber” : “11222”,
+	"virtualKey" : "5",
+	"variables" : [
+	     { "id_number" : "110108198703127621" },
+		 { "name" : "张三" },
+		 {"address" : "江苏省南京市江宁区" }
+	]
+	"reason" : "test",
+	"userdata" : "test"
+}
+
+```
+
+
+
+#### 3.3.2 被叫查询和通用交互模式响应消息
+
+##### 3.3.2.1 放音响应
+
 json to cr
 
 ```json
 {
     "rspCode" : 0,
-    “ccgeid” : “123”,
-    “ccNumber” : :21212”,
+    "ccgeid" : 123,
+    "ccNumber" : "21212",
 	"userQueryId" : "id_0000001",
 	"variables" : [
 	    { "id_number" : "110108198703127621" },
 		{ "name" :"张三" },
 		{ "address":"江苏省南京市江宁区" }
-	]
+	],
 	"nextAction" : {
 	    "action" : 1,
 		"paras" : {
+            //下面四个参数选择其中之一
 		    "voiceId" : "播放语音文件id",
 			"voiceName" : "播放语音文件唯一名称",
+            "voiceTempId": "播放语音模板id",
+            "voiceTempName": "播放语音模板名称",
+            //语音模板参数，多个参数见用英文","号隔开，当选择voiceTempId或者voiceTempName时需要传入
+            "voiceTempParams": "语音模板参数",
+            
 			"allowBreak" : "是否允许打断: 0-不允许 1-允许"
 		}
-	}
+	},
 	"reason" : "test",
 	"userdata" : "test"
 }
 ```
 
-##### 3.2.2.2 放音收键响应
+##### 3.3.2.2 放音收键响应
 
 json to cr
 
@@ -363,31 +457,37 @@ json to cr
 {
     "rspCode" : 0,
     “ccgeid” : “123”,
-    “ccNumber” : :21212”,
+    "ccNumber" : "21212",
 	"userQueryId" : "id_0000001",
 	"variables" : [
 	    { "id_number" : "110108198703127621" },
 		{ "name" :"张三" },
 		{ "address":"江苏省南京市江宁区" }
-	]
+	],
 	"nextAction" : {
 	    "action" : 2,
 		"paras" : {
+            //下面四个参数选择其中之一
 		    "voiceId" : "播放语音文件id",
 			"voiceName" : "播放语音文件唯一名称",
+            "voiceTempId": "播放语音模板id",
+            "voiceTempName": "播放语音模板名称",
+            //语音模板参数，多个参数见用英文","号隔开，当选择voiceTempId或者voiceTempName时需要传入
+            "voiceTempParams": "语音模板参数",
+            
 			"allowBreak" : "是否允许打断: 0-不允许 1-允许",
 			"getKeyNumber" : "获取按键位数",
 			"getKeyTimeout" : "收键超时时间",
 			"endWithHashKey" : "是否以#号键结束, 0-不是, 1-是"
 		}
-	}
+	},
 	"reason" : "test",
 	"userdata" : "test"
 }
 
 ```
 
-##### 3.2.2.3 转技能组响应
+##### 3.3.2.3 转技能组响应
 
 json to cr
 
@@ -420,7 +520,7 @@ json to cr
 
 ```
 
-##### 3.2.2.4 转座席响应
+##### 3.3.2.4 转座席响应
 
 json to cr
 
@@ -449,7 +549,7 @@ json to cr
 }
 ```
 
-##### 3.2.2.5 转外线响应
+##### 3.3.2.5 转外线响应
 
 json to cr
 
@@ -477,7 +577,7 @@ json to cr
 
 ```
 
-##### 3.2.2.6 转其他IVR流程响应
+##### 3.3.2.6 转其他IVR流程响应
 
 json to cr
 
@@ -504,7 +604,7 @@ json to cr
 }
 ```
 
-##### 3.2.2.7 流程结束响应
+##### 3.3.2.7 流程结束响应
 
 ```json
 {
@@ -528,20 +628,14 @@ json to cr
 
 
 
-### 3.3 api->cr_web
-
-api到cr_web，只需要将json数据外包装一个头，然后透传给cr_web就可以了
-
 ## 4 处理流程
 
-cr给api的推送目前分为通话推送和坐席状态推送。
 
-查询被叫默认按照通话推送进行处理，并且按照振铃推送的处理逻辑进行处理。
-
-之前的查询被叫协议只会出现在呼入场景中，而现在的交互式ivr呼入呼出都有涉及，不仅仅只是查询被叫，同样的会有和通话无关的查询请求，首先考察是否会对通话记录产生影响
 
 - api callpush模块时序图
 ```sequence
+asynccallpush->asynccallpush: 根据推送过来的数据确定查询通话记录
+asynccallpush->asynccallpush: 根据通话记录和推送数据插入或者更新\ncall_records或者call_details表
 asynccallpush->appcallback: 封装数据交给appcallback处理
 appcallback->appcallback: 根据数据类型进行\n不同的数据封装
 appcallback->appserver: 将推送数据包发送给客户服务器
@@ -549,88 +643,29 @@ appserver->appcallback: 返回数据给appcallback
 appcallback->appcallback: 处理客户服务器返回的数据
 ```
 
-- asynccallpush流程图(status为0的分支)
-```flow
-st=>start: 开始框
-findrecord=>operation: 查询通话记录
-ifrecordexist=>condition: 通话记录是否存在？
-createnewrecord=>operation: 新建通话记录(准备数据)
-completecallpushdata=>operation: 完善callpushdata
-ifrecordexist2=>condition: 通话记录是否存在？
-chargeold=>operation: 检测是否是已经推送过的detail
-ifdetailexist=>condition: detail是否存在
-createnewdetail=>operation: 新建detail(准备数据)
-ifdatapush=>condition: 是否是通话过程中的内容推送
-datapushstatuschange=>operation: 内容推送可能也需要改变通话记录状态
-ifstatuscalling=>condition: 通话记录状态为振铃中？
-updateringtime=>operation: 更新振铃时间
-sub=>subroutine: ....
-sub1=>subroutine: ....
-subroutine=>operation: 进入不同的子流程
-
-e=>end: 结束
-
-st->findrecord->ifrecordexist
-ifrecordexist(yes)->completecallpushdata
-ifrecordexist(no)->createnewrecord->completecallpushdata
-completecallpushdata->ifrecordexist2
-ifrecordexist2(yes)->chargeold->ifdetailexist
-ifrecordexist2(no)->ifdetailexist
-ifdetailexist(yes)->ifdatapush
-ifdetailexist(no)->createnewdetail
-ifdatapush(yes)->datapushstatuschange
-ifdatapush(no)->ifstatuscalling
-ifstatuscalling(yes)->updateringtime
-ifstatuscalling(no)->sub
-datapushstatuschange->sub1
-updateringtime->sub1
-createnewdetail->sub1
-sub1->subroutine
-subroutine->e
-```
-
-
-
-- 通话振铃推送子流程图
-```flow
-st=>start: 开始
-confirmurl=>operation: 确定推送url
-pack=>operation: 打包数据，确定是否进行推送
-up_db=>operation: record和detail入库
-ifdocallback=>condition: 是否给客户推送
-docallback=>operation: 发送至推送处理队列
-e=>end: 结束框
-st->confirmurl->pack->up_db->ifdocallback
-ifdocallback(no)->e
-ifdocallback(yes)->docallback->e
-```
-
-- appcallback请求消息处理流程
-```flow
-st=>start: 开始
-genquerydata=>operation: 封装请求信息
-ifquery=>condition: 是否需要向客户服务器查询数据
-commoncallback=>operation: 正常推送流程
-getappsetting=>operation: 获取应用配置，并且获取配置对应的回调查询函数
-querydata=>operation: 向客户服务器查询数据
-notify=>operation: 通过消息通道将消息返回给请求方
-e=>end: 结束
-st->ifquery
-ifquery(yes)->genquerydata->getappsetting->notify->e
-ifquery(no)->commoncallback->e
-```
-
 经过考察我们主要的修改是：
 
-1. 发向appcallback队列的数据会进行扩展，存储ivr扩展信息
-2. 回调接口扩展，新建新的协议和对应的回调函数
-3. 查询结果返回
+1. 发向appcallback队列的数据会进行扩展，存储ivr扩展信息。
+2. 对于非呼入的数据，不能更新通话记录
+3. 回调接口扩展，新建新的协议和对应的回调函数
+4. 查询结果封装并返回，通过cr_web接口
+
+疑问：
+
+1. 交互收键的虚拟按键用户如何返回
+2. 98和99或者96还和以前一样，不会推送振铃请求么
 
 ### 4.1 95(交互收键模式)
 
+如果已有通话记录，则不对通话记录进行任何修改；如果没有通话记录，则该通话一定是呼入通话，需要在call_records和call_details表中生成原始通话记录，通话类型等于请求数据中的callType
+
 ### 4.2 96(被叫查询模式)
 
+被叫查询api会直接根据消息数据入库，和之前的处理方式保持一致即可。
+
 ### 4.3 97(通用交互模式)
+
+如果已有通话记录，则不对通话记录进行任何修改；如果没有通话记录，则该通话一定是呼入通话，需要在call_records和call_details表中生成原始通话记录，通话类型等于请求数据中的callType
 
 ### 4.4 98(AMNB或者AMXNB模式)
 
@@ -641,35 +676,4 @@ ifquery(no)->commoncallback->e
 被叫查询api会直接根据消息数据入库，和之前的处理方式保持一致即可。
 
 ## 5 涉及代码
-
-```c
-if( data->type == DB_CALL_RECORD_TYPE_QUERY_CALLED_BASE ||
-   data->type == DB_CALL_RECORD_TYPE_QUERY_CALLED_BY_PBX ||
-   data->type == DB_CALL_RECORD_TYPE_QUERY_CALLED_BY_USENUMBER ||
-   data->type == DB_CALL_RECORD_TYPE_QUERY_CALLED_BY_VIRTNUMBER )
-{
-    strcpy(call_record->useNumber, data->useNumber);
-}
-else if(data->type == DB_CALL_RECORD_TYPE_QUERY_CALLED_BY_SUBNUMBER)
-    strcpy(call_record->subNumber, data->subNumber);
-else if(data->type == DB_CALL_RECORD_TYPE_QUERY_CALLED_BY_VIRTNUMBER)
-    strcpy(call_record->virtNumber, data->virtNumber);
-```
-
-```c
-else if(IsOnlineCallPushType(data->type))
-{
-    if(call_record->status < DB_CALL_RECORD_STATUS_CALL_ESTABLISHED)
-        data->status = call_record->status;	//如果是查被叫的话重新改为振铃
-    else
-        data->status = DB_CALL_RECORD_STATUS_CALL_ESTABLISHED;
-}
-```
-    else if(NULL != callreqUrl ||
-            ( call_record->type >= DB_CALL_RECORD_TYPE_QUERY_CALLED_BASE &&
-              DB_APPLICATION_CALLBACK_COMMON_PROTOCOL == appInfo->protocol) )
-```c
-if(call_record->type >= DB_CALL_RECORD_TYPE_QUERY_CALLED_BASE)
-{
-```
 
