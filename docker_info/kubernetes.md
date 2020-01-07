@@ -1320,3 +1320,63 @@ Events:                   <none>
 
 ### 5.4 通过Ingerss暴露服务
 
+现在已经介绍了向集群外部的客户端公开服务的两种方法，还有另一种方法——创建Ingress资源。
+
+#### 为什么需要Ingress
+
+一个重要的原因是每个LoadBalancer服务都需要自己的负载均衡器，以及独有的公有IP地址。而Ingress只需要一个公网IP就能为许多服务提供访问。
+
+#### Ingress控制器是必不可少的
+
+只有Ingress控制器再集群中运行，Ingress资源才能正常工作
+
+#### 5.4.1 创建Ingress资源
+
+```yaml
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+        name: kubia
+spec:
+        rules:
+                - host: kubia.example.com
+                #Ingress将域名kubia.example.com映射到你的服务
+                  http:
+                  paths:
+                          - path: /
+                            backend:
+                            		#将所有的请求发送到kubia-nodeport服务的80端口
+                                    serviceName: kubia-nodeport
+                                    servicePort: 80
+```
+
+#### 5.4.2 通过Ingress访问服务
+
+要通过http://kubia.example.com访问服务，需要确保域名解析为Ingress控制器的IP
+
+##### 获取Ingress的IP地址
+
+要查找IP，需要列出Ingress：
+
+kubectl get ingresses
+
+##### 确保在Ingress中配置的Host指向Ingress的IP地址
+
+配置dns
+
+##### 通过Ingress访问pod
+
+##### 了解Ingress的工作原理
+
+ingress控制器不会将请求转发给该服务，只用它来选择一个pod。大多数控制器都是这样工作的
+
+#### 5.4.3 通过相同的Ingress暴露多个服务
+
+#### 5.4.4 配置Ingress处理TLS传输
+
+配置Ingress以支持TLS
+
+##### 为Ingress创建TLS认证
+
+当客户端创建到Ingress控制器的TLS连接时，控制器将终止TLS连接。客户端和控制其之间的通信是加密的，而控制器和后端的pod之间的通信则不是。运行在pod上的应用程序不需要支持TLS。要是控制器能够这样做，需要将证书和私钥附加到Ingress。这两个必须资源存储在称为Secret的kubernetes资源中，然后在Ingress manifest中引用它。
+

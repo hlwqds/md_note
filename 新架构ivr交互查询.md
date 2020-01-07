@@ -11,8 +11,8 @@
 通用的修改需求：
 
 1. 新架构企业，通过ccgeid获取企业信息
-2. 新架构企业，通过CR-Web提供的查询响应接口返回数据
-3. 新架构企业，确定用户请求和用户响应格式
+2. 新架构企业，确定用户请求和用户响应格式
+3. 新架构企业，通过CR-Web提供的查询响应接口返回数据
 
 ### 1.1 95(交互收键模式)
 
@@ -144,7 +144,7 @@ cr_web-->api:cr_web响应成功
 
 ```json
 {
-    "type" : 98,
+    "type" : 99,
     "ccgeid" : 1576,
     "callId" : "apixxxxxxxxxxxx",
     "ccNumber" : "13260278209conf0_1519439781636",
@@ -165,7 +165,7 @@ cr_web-->api:cr_web响应成功
 
 1. 根据ccgeid从企业表中获取企业信息
 
-根据ccgeid获取企业信息，我们不需要通过callId或者总机号才能获取到企业信息，需要注意的是。后面处理时还会尝试获取一次企业的详细信息，对于新架构，我们需要将企业的信息发送过去，以减少一次数据库操作（但是enterprise结构体的大小显然对于推送的消息队列来说过于庞大了）。
+根据ccgeid获取企业信息，我们不需要通过callId或者总机号才能获取到企业信息，需要注意的是。后面处理时还会尝试获取一次企业的详细信息，对于新架构，我们需要将企业的信息发送过去，以减少一次数据库操作（但是enterprise结构体的大小对于推送的消息队列来说过于庞大了）。
 
 
 
@@ -179,12 +179,6 @@ cr_web-->api:cr_web响应成功
 | 语音通知 | 语音通知流程 | 3        | 总机号码   | 1          | 客户号码   | 1          |
 
 ```c
-typedef enum
-{
-    IVR_CALLER_AND_CALLLED_TYPE_OUTLINE = 1,
-    IVR_CALLER_AND_CALLLED_TYPE_INLINE = 2，
-}IVRCallerAndCalledType;
-
 typedef struct __push_post_data_ivr_moudle__
 {
     DB_CALL_RECORD_CALL_TYPE    calltype;     //联合calltype caller called，可以得知在此次ivr请求中，哪个是客户，哪个是坐席
@@ -203,7 +197,6 @@ typedef struct __push_post_data_ivr_moudle__
     char          *variables;
     /*
     用户自定义查询请求变量值集合，是{"variables" : [ {"id_number" : "110108198703127621"}, {:"name" :""}, {"address":""} ]}，
-    存入对空间中，用完释放
     */
 }ModCallPushPostDataIVRMoudle;
 
@@ -256,7 +249,48 @@ typedef struct __push_post_data__
     char                        batchCallUserData[USER_DATA_MAX_LEN];
     char                        batchCallTaskId[BATCH_TASK_ID_MAX_LEN];
 } ModCallPushPostData;
+
+typedef struct __app_server_callback_argument__
+{
+    BOOL    isPiccCallbackArg;
+    BOOL    isCommonEnterprise;
+    BOOL    packageBalanceEnough;
+    int     callbackTimes;
+    int     appCallbackDataFormat;
+    int     call_detail_num;
+    unsigned long app_id;
+    unsigned long provinceId;
+    unsigned long enterpriseId;
+
+    unsigned long curTimestamp;
+    unsigned long timestamp;
+    unsigned char keyFeedback[CALL_RECORD_FEEDBACK_MAX_LEN];
+    unsigned char destNumber[USER_NUMBER_MAX_LEN];
+    PiccCallBackArgument *piccArgs;
+    
+    ModCallPushPostDataIVRMoudle    *ivr_argv;      //新架构通用ivr扩展字段,记得释放
+    DB_CALL_RECORD_CALL_TYPE    type;       //此次推送的通话类型，根据ivr文档描述call_records和call_detail中的type已经不能标识这次的推送通话类型了
+    
+    APP_CALLBACK_TYPE   callbackType;
+    char AppServerUrl[CALLBACK_URL_MAX_LEN];
+    // MYSQL *pDb;                                 // Only for local database access
+
+    // ModCallPushPostData *post_data;
+    EMICALLDEV_DB_CALL_RECORDS  *call_record;
+    EMICALLDEV_DB_CALL_DETAILS  *call_details;
+    EMICALLDEV_DB_CALL_DETAILS  *cur_call_detail;
+    EMICALLDEV_DB_ACCOUNTS      *mainAccount;
+    EMICALLDEV_DB_APPLICATIONS  *appInfo;
+    EMICDEV_DB_COMMON_ENTERPRISES   *comm_enterprise;
+    EMICDEV_DB_ENTERPRISES      *enterprise;
+    ENTERPRISE_BASE_INFO        *eInfo;
+    EMICALLDEV_DB_CALL_RECORD_CC_EXTENDS  *call_record_extends;
+
+    char downloadUrl[HTTP_URL_MAX_LEN];
+} AppServerCallbackArgument;
 ```
+
+
 
 
 
@@ -306,6 +340,8 @@ typedef struct __push_post_data__
 		{"name" :"" },
 		{"address":"" }
 	],
+    'userData':"FE87D3"
+
 }
 说明：在上例中，有3个全局变量：id_number、name和address，id_number已经赋值，name和address未赋值，需要用户服务器返回，并在IVR其它节点中引用。
 ```
@@ -368,9 +404,9 @@ typedef struct __push_post_data__
 
 ### 3.3 api->cr_web
 
-新架构cr采用统一的json格式，所以不管是95、96、97、98还是99，api需要将客户返回的消息转换成cr需要的格式
+新架构cr采用统一的json格式，所以不管是95、96、97、98还是99，api需要将客户返回的消息转换成cr需要的格式，而不需要校验。api需要在对外文档中列出这些响应数据对应的格式。
 
-以下是cr根据action定义的响应消息内容，95、96、98、99需要根据这些重新生成给cr的响应，然后通过cr_web透传给cr
+以下是cr根据action定义的响应消息内容，需要根据这些重新生成给cr的json响应，然后通过cr_web透传给cr
 
 为方便路由，要求将ccgeid和cc_number作为头域参数
 
@@ -394,21 +430,27 @@ typedef enum
 
 ```json
 {
-    "rspCode" : 0,
-    “type” : “95”,
-    “ccgeid” : “124”,
-	"userQueryId" : "id_0000001",
-    “ccNumber” : “11222”,
-	"virtualKey" : "5",
-	"variables" : [
-	     { "id_number" : "110108198703127621" },
-		 { "name" : "张三" },
-		 {"address" : "江苏省南京市江宁区" }
-	]
-	"reason" : "test",
-	"userdata" : "test"
+    "eid" : "00011",
+	"ccgeid" : "111222",
+	"request_type" : "1",	//标识是通话控制请求还是交互式ivr响应
+	"class_type" : "1",		//
+	"ccNumber" : "",		//
+	"data" : 
+	"
+	{
+	    "rspCode" : 0,
+	    "userQueryId" : "id_0000001",
+	    "virtualKey" : "5",
+	    "variables" : [
+	         { "id_number" : "110108198703127621" },
+		     { "name" :"张三" },
+		     { "address":"江苏省南京市江宁区" }
+	    ]
+	    "reason" : "test",
+	    "userdata" : "test"
+	}
+	"
 }
-
 ```
 
 
@@ -421,31 +463,36 @@ json to cr
 
 ```json
 {
-    "rspCode" : 0,
-    "ccgeid" : 123,
-    "ccNumber" : "21212",
-	"userQueryId" : "id_0000001",
-	"variables" : [
-	    { "id_number" : "110108198703127621" },
-		{ "name" :"张三" },
-		{ "address":"江苏省南京市江宁区" }
-	],
-	"nextAction" : {
-	    "action" : 1,
-		"paras" : {
-            //下面四个参数选择其中之一
-		    "voiceId" : "播放语音文件id",
-			"voiceName" : "播放语音文件唯一名称",
-            "voiceTempId": "播放语音模板id",
-            "voiceTempName": "播放语音模板名称",
-            //语音模板参数，多个参数见用英文","号隔开，当选择voiceTempId或者voiceTempName时需要传入
-            "voiceTempParams": "语音模板参数",
-            
-			"allowBreak" : "是否允许打断: 0-不允许 1-允许"
-		}
-	},
-	"reason" : "test",
-	"userdata" : "test"
+    "eid" : "00011",
+	"ccgeid" : "111222",
+	"request_type" : "1",	//标识是通话控制请求还是交互式ivr响应
+	"class_type" : "1",		//
+	"ccNumber" : "",		//
+    "data":"
+        "rspCode" : 0,
+        "userQueryId" : "id_0000001",
+        "variables" : [
+            { "id_number" : "110108198703127621" },
+            { "name" :"张三" },
+            { "address":"江苏省南京市江宁区" }
+        ],
+        "nextAction" : {
+            "action" : 1,
+            "paras" : {
+                //下面四个参数选择其中之一
+                "voiceId" : "播放语音文件id",
+                "voiceName" : "播放语音文件唯一名称",
+                "voiceTempId": "播放语音模板id",
+                "voiceTempName": "播放语音模板名称",
+                //语音模板参数，多个参数见用英文","号隔开，当选择voiceTempId或者voiceTempName时需要传入
+                "voiceTempParams": "语音模板参数",
+
+                "allowBreak" : "是否允许打断: 0-不允许 1-允许"
+            }
+        },
+        "reason" : "test",
+        "userdata" : "test"
+    "
 }
 ```
 
@@ -455,34 +502,39 @@ json to cr
 
 ```json
 {
-    "rspCode" : 0,
-    “ccgeid” : “123”,
-    "ccNumber" : "21212",
-	"userQueryId" : "id_0000001",
-	"variables" : [
-	    { "id_number" : "110108198703127621" },
-		{ "name" :"张三" },
-		{ "address":"江苏省南京市江宁区" }
-	],
-	"nextAction" : {
-	    "action" : 2,
-		"paras" : {
-            //下面四个参数选择其中之一
-		    "voiceId" : "播放语音文件id",
-			"voiceName" : "播放语音文件唯一名称",
-            "voiceTempId": "播放语音模板id",
-            "voiceTempName": "播放语音模板名称",
-            //语音模板参数，多个参数见用英文","号隔开，当选择voiceTempId或者voiceTempName时需要传入
-            "voiceTempParams": "语音模板参数",
-            
-			"allowBreak" : "是否允许打断: 0-不允许 1-允许",
-			"getKeyNumber" : "获取按键位数",
-			"getKeyTimeout" : "收键超时时间",
-			"endWithHashKey" : "是否以#号键结束, 0-不是, 1-是"
-		}
-	},
-	"reason" : "test",
-	"userdata" : "test"
+    "eid" : "00011",
+	"ccgeid" : "111222",
+	"request_type" : "1",	//标识是通话控制请求还是交互式ivr响应
+	"class_type" : "1",		//
+	"ccNumber" : "",		//
+    "data":"
+        "rspCode" : 0,
+        "userQueryId" : "id_0000001",
+        "variables" : [
+            { "id_number" : "110108198703127621" },
+            { "name" :"张三" },
+            { "address":"江苏省南京市江宁区" }
+        ],
+        "nextAction" : {
+            "action" : 2,
+            "paras" : {
+                //下面四个参数选择其中之一
+                "voiceId" : "播放语音文件id",
+                "voiceName" : "播放语音文件唯一名称",
+                "voiceTempId": "播放语音模板id",
+                "voiceTempName": "播放语音模板名称",
+                //语音模板参数，多个参数见用英文","号隔开，当选择voiceTempId或者voiceTempName时需要传入
+                "voiceTempParams": "语音模板参数",
+
+                "allowBreak" : "是否允许打断: 0-不允许 1-允许",
+                "getKeyNumber" : "获取按键位数",
+                "getKeyTimeout" : "收键超时时间",
+                "endWithHashKey" : "是否以#号键结束, 0-不是, 1-是"
+            }
+        },
+        "reason" : "test",
+        "userdata" : "test"
+    "
 }
 
 ```
@@ -493,29 +545,34 @@ json to cr
 
 ```json
 {
-    "rspCode" : 0,
-    “ccgeid” : “123”,
-    “ccNumber” : :21212”,
-	"userQueryId" : "id_0000001",
-	"variables" : [
-	    { "id_number" : "110108198703127621" },
-		{ "name" :"张三" },
-		{ "address":"江苏省南京市江宁区" }
-	]
-	"nextAction" : {
-	    "action" : 3,
-		"paras" : {
-		    "acdId" : "技能组id",
-			"acdName" : "技能组名称",
-			"useAcdValue" : "0-不使用技能组配置 1-使用技能组配置",
-			"queueTime" : "排队超时时长",
-			"switchTimes" : "坐席流转次数",
-			"ringTimeout" : "坐席振铃超时时长",
-			"customerMemory" : "0-不记忆 1-优先熟客记忆 2-强制熟客记忆"
-		}
-	}
-	"reason" : "test",
-	"userdata" : "test"
+    "eid" : "00011",
+	"ccgeid" : "111222",
+	"request_type" : "1",	//标识是通话控制请求还是交互式ivr响应
+	"class_type" : "1",		//
+	"ccNumber" : "",		//
+    "data":"
+        "rspCode" : 0,
+        "userQueryId" : "id_0000001",
+        "variables" : [
+            { "id_number" : "110108198703127621" },
+            { "name" :"张三" },
+            { "address":"江苏省南京市江宁区" }
+        ]
+        "nextAction" : {
+            "action" : 3,
+            "paras" : {
+                "acdId" : "技能组id",
+                "acdName" : "技能组名称",
+                "useAcdValue" : "0-不使用技能组配置 1-使用技能组配置",
+                "queueTime" : "排队超时时长",
+                "switchTimes" : "坐席流转次数",
+                "ringTimeout" : "坐席振铃超时时长",
+                "customerMemory" : "0-不记忆 1-优先熟客记忆 2-强制熟客记忆"
+            }
+        }
+        "reason" : "test",
+        "userdata" : "test"
+    "
 }
 
 ```
@@ -526,26 +583,31 @@ json to cr
 
 ```json
 {
-    "rspCode" : 0,
-    “ccgeid” : “123”,
-    “ccNumber” : :21212”,
-	"userQueryId" : "id_0000001",
-	"variables" : [
-	    { "id_number" : "110108198703127621" },
-		{ "name" :"张三" },
-		{ "address":"江苏省南京市江宁区" }
-	]
-	"nextAction" : {
-	    "action" : 4,
-		"paras" : {
-		    "workNumber" : "1001,1002,1003",
-			"number" : "1001,1002,1003",
-			"queueTime" : "坐席忙时排队时长",
-			"ringTimeout" : "多坐席情况下，坐席振铃超时时长"
-		}
-	}
-	"reason" : "test",
-	"userdata" : "test"
+    "eid" : "00011",
+	"ccgeid" : "111222",
+	"request_type" : "1",	//标识是通话控制请求还是交互式ivr响应
+	"class_type" : "1",		//
+	"ccNumber" : "",		//
+    "data":"
+        "rspCode" : 0,
+        "userQueryId" : "id_0000001",
+        "variables" : [
+            { "id_number" : "110108198703127621" },
+            { "name" :"张三" },
+            { "address":"江苏省南京市江宁区" }
+        ]
+        "nextAction" : {
+            "action" : 4,
+            "paras" : {
+                "workNumber" : "1001,1002,1003",
+                "number" : "1001,1002,1003",
+                "queueTime" : "坐席忙时排队时长",
+                "ringTimeout" : "多坐席情况下，坐席振铃超时时长"
+            }
+        }
+        "reason" : "test",
+        "userdata" : "test"
+    "
 }
 ```
 
@@ -555,24 +617,29 @@ json to cr
 
 ```json
 {
-    "rspCode" : 0,
-    “ccgeid” : “123”,
-    "ccNumber" : :"21212”,
-	"userQueryId" : "id_0000001",
-	"variables" : [
-	    { "id_number" : "110108198703127621" },
-		{ "name" :"张三" },
-		{ "address":"江苏省南京市江宁区" }
-	]
-	"nextAction" : {
-	    "action" : 5,
-		"paras" : {
-		    "called" : "外线被叫号码",
-			"outNumber" : "呼出总机号码"
-		}
-	}
-	"reason" : "test",
-	"userdata" : "test"
+    "eid" : "00011",
+	"ccgeid" : "111222",
+	"request_type" : "1",	//标识是通话控制请求还是交互式ivr响应
+	"class_type" : "1",		//
+	"ccNumber" : "",		//
+    "data":"
+        "rspCode" : 0,
+        "userQueryId" : "id_0000001",
+        "variables" : [
+            { "id_number" : "110108198703127621" },
+            { "name" :"张三" },
+            { "address":"江苏省南京市江宁区" }
+        ]
+        "nextAction" : {
+            "action" : 5,
+            "paras" : {
+                "called" : "外线被叫号码",
+                "outNumber" : "呼出总机号码"
+            }
+        }
+        "reason" : "test",
+        "userdata" : "test"
+    "
 }
 
 ```
@@ -583,24 +650,29 @@ json to cr
 
 ```json
 {
-    "rspCode" : 0,
-    “ccgeid” : “123”,
-    “ccNumber” : "21212”,
-	"userQueryId" : "id_0000001",
-	"variables" : [
-	    { "id_number" : "110108198703127621" },
-		{ "name" :"张三" },
-		{ "address":"江苏省南京市江宁区" }
-	]
-	"nextAction" : {
-	    "action" : 6,
-		"paras" : {
-		    "ivrFlowId" : "IVR流程id",
-			"ivrFlowName" : "IVR流程名称"
-		}
-	}
-	"reason" : "test",
-	"userdata" : "test"
+    "eid" : "00011",
+	"ccgeid" : "111222",
+	"request_type" : "1",	//标识是通话控制请求还是交互式ivr响应
+	"class_type" : "1",		//
+	"ccNumber" : "",		//
+    "data":"
+        "rspCode" : 0,
+        "userQueryId" : "id_0000001",
+        "variables" : [
+            { "id_number" : "110108198703127621" },
+            { "name" :"张三" },
+            { "address":"江苏省南京市江宁区" }
+        ]
+        "nextAction" : {
+            "action" : 6,
+            "paras" : {
+                "ivrFlowId" : "IVR流程id",
+                "ivrFlowName" : "IVR流程名称"
+            }
+        }
+        "reason" : "test",
+        "userdata" : "test"
+    "
 }
 ```
 
@@ -608,20 +680,25 @@ json to cr
 
 ```json
 {
-    "rspCode" : 0,
-    “ccgeid” : “123”,
-    “ccNumber” : “21212”,
-	"userQueryId" : "id_0000001",
-	"variables" : [
-	    { "id_number" : "110108198703127621" },
-		{ "name" :"张三" },
-		{ "address":"江苏省南京市江宁区" }
-	]
-	"nextAction" : {
-	    "action" : 7
-	}
-	"reason" : "test",
-	"userdata" : "test"
+    "eid" : "00011",
+	"ccgeid" : "111222",
+	"request_type" : "1",	//标识是通话控制请求还是交互式ivr响应
+	"class_type" : "1",		//
+	"ccNumber" : "",		//
+    "data":"
+        "rspCode" : 0,
+        "userQueryId" : "id_0000001",
+        "variables" : [
+            { "id_number" : "110108198703127621" },
+            { "name" :"张三" },
+            { "address":"江苏省南京市江宁区" }
+        ]
+        "nextAction" : {
+            "action" : 7
+        }
+        "reason" : "test",
+        "userdata" : "test"
+    "
 }
 
 ```
@@ -643,17 +720,65 @@ appserver->appcallback: 返回数据给appcallback
 appcallback->appcallback: 处理客户服务器返回的数据
 ```
 
+asynccallpush到appcallback只需要将ivr的特有数据透传就行。
+
+appcallback到appserver因为type和calltype的含义已经变化，在原有的结构上进行扩展已经不适合了。下面是appcallback的新逻辑。
+
+```c
+if(是查询请求)
+{
+    if(callback_request->type != 95 && 96 && 97)
+    {
+        //逻辑保持不变
+    }
+    else
+    {
+        //封装请求
+        //根据类型调用回调函数，因为都是95或96或97，直接调用通用交互式ivr回调函数
+    }
+
+    if(新架构)
+    {
+    	if(callback_request->type == 99 || 98)
+    	{
+    		//解析响应结构，存入给cr_web请求结构
+            //用户的返回的数据如果是json，直接将需要的键值对转成字符串透传
+            //如果是xml，先转成json后按json进行处理
+    	}
+    	else
+    	{
+    		//解析响应结构，存入给cr_web的请求结构
+            //用户的返回的数据如果是json，直接将需要的键值对转成字符串透传
+            //如果是xml，先转成json后按json进行处理
+    	}
+    }
+	else
+	{
+	
+	}
+	
+    if(callback_request->type != 95 && 96 && 97)
+	{
+		//更新call_records和call_details
+	}
+}
+```
+
+
+
+
+
 经过考察我们主要的修改是：
 
 1. 发向appcallback队列的数据会进行扩展，存储ivr扩展信息。
-2. 对于非呼入的数据，不能更新通话记录
-3. 回调接口扩展，新建新的协议和对应的回调函数
+2. 对于交互类型的数据，不能更新通话记录
+3. 回调接口扩展，新增回调函数
 4. 查询结果封装并返回，通过cr_web接口
 
 疑问：
 
-1. 交互收键的虚拟按键用户如何返回
-2. 98和99或者96还和以前一样，不会推送振铃请求么
+1. 98和99或者96和以前不同，会推送振铃请求
+2. 目前type和calltype的定义比较混乱
 
 ### 4.1 95(交互收键模式)
 
