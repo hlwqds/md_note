@@ -329,6 +329,8 @@ typedef struct __app_server_callback_argument__
     "callType" : 1,
 	"accountSid": "c5dc4b87f33ef2ef37c8e974793ad8e5",
     "subAccountSid": "c5dc4b87f33ef2ef37c8e974793ad8e5",
+    'appId':'b23abb6d451346efa13370172d1921ef',
+
     "callId" : "apixxxxxxxxxxxx",
     "caller" : "13260278209",
     "called" : "1001",
@@ -727,9 +729,10 @@ appcallback到appserver因为type和calltype的含义已经变化，在原有的
 ```c
 if(是查询请求)
 {
+    //向用户服务器进行请求
     if(callback_request->type != 95 && 96 && 97)
     {
-        //逻辑保持不变
+        //请求逻辑保持不变
     }
     else
     {
@@ -751,6 +754,8 @@ if(是查询请求)
             //用户的返回的数据如果是json，直接将需要的键值对转成字符串透传
             //如果是xml，先转成json后按json进行处理
     	}
+        
+        //向cr_web发送请求
     }
 	else
 	{
@@ -779,6 +784,7 @@ if(是查询请求)
 
 1. 98和99或者96和以前不同，会推送振铃请求
 2. 目前type和calltype的定义比较混乱
+3. 不支持重传
 
 ### 4.1 95(交互收键模式)
 
@@ -801,4 +807,8 @@ if(是查询请求)
 被叫查询api会直接根据消息数据入库，和之前的处理方式保持一致即可。
 
 ## 5 涉及代码
+
+
+
+
 
