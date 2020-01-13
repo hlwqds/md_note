@@ -1035,5 +1035,571 @@ func main() (){
 
 ### 2.5 panic和recover
 
+本节主要介绍panic和recover两个内置
 
+#### 2.5.1 基本概念
+
+panic和recover的函数签名如下：
+
+```go
+panic(i interface{})
+recover () interface{}
+```
+
+引发panic有两种情况，一种是程序主动调用panic函数，另一种是程序产生运行时错误由运行时检测并且抛出。
+
+发生panic后，程序会从调用panic的函数位置或发生panic的地方立即返回，逐层向上执行函数的defer语句，然后逐层打印函数调用堆栈，直到被recover捕获或运行到最外层函数而退出
+
+panic的参数是一个空接口类型interface{}，所以任意类型的变量都可以传递给panic。调用panic的方法非常简单：panic(xxx)
+
+panic不但可以在函数正常流程中抛出，在defer逻辑里也可以再次调用panic或抛出panic。defer里面的panic能够被后续执行的defer捕获。
+
+recover()用来捕获panic，阻止panic继续向上传递。recover()和defer一起使用，但是recover()只有在defer后面的函数体内被直接调用才能捕获panic终止异常，否则返回nil，异常继续向外传递。
+
+```go
+//这个会捕获失败
+defer recover()
+
+//这个会捕获失败
+defer fmt.Println(recover())
+
+//这个嵌套两层也会捕获失败
+defer func(){
+    func(){
+        println("defer inneer")
+        recover()
+    }()
+}()
+
+//如下的场景会被捕捉成功
+defer func() {
+    println("defer inner")
+    recover()
+}()
+
+func except() {
+    recover()
+}()
+
+func test(){
+    defer except()
+    panic("test panic")
+}
+```
+
+可以有多个panic被抛出，连续多个panic的场景只能出现在延迟调用里面，否则不会出现多个panic被抛出的场景。但只有最后一次panic能被捕获。
+
+```go
+package main
+
+import (
+	"fmt"
+)
+
+func main() (){
+	defer func() (){
+		if err := recover(); err != nil{
+			fmt.Println(err)
+		}
+	}()
+
+	defer func() (){
+		if err := recover(); err != nil{
+			fmt.Println(err)
+		}
+		panic("first defer panic")
+	}()
+
+	defer func() (){
+		panic("second defer panic")
+	}()
+
+	println("func body")
+}
+```
+
+包中init的函数引发的panic只能在init函数中捕获，在main中无法捕获，原因是init函数先于main执行。函数并不能捕获内部新启动的goroutine所抛出的panic
+
+```go
+package main
+
+import (
+	"time"
+	"fmt"
+)
+
+func da() (){
+	defer func() (){
+		if err := recover(); err != nil{
+			fmt.Println(err)
+		}
+	}()
+
+	panic("panic da")
+	for i := 0; i < 10; i++{
+		fmt.Println(i)
+	}
+}
+
+func db() (){
+	for i := 0; i < 10; i++{
+		fmt.Println(i)
+	}
+}
+
+func do() (){
+	defer func() (){
+		if err := recover(); err != nil{
+			fmt.Println(err)
+		}
+	}()
+
+	go da()
+	go db()
+	time.Sleep(3 * time.Second)
+}
+
+func main() (){
+	do()
+}
+```
+
+#### 2.5.2 使用场景
+
+什么情况下主动调用panic函数抛出panic
+
+一般有两种情况：
+
+（1）程序遇到了无法执行下去的错误，主动调用panic函数结束程序运行
+
+（2）在调试程序时，通过主动调用panic实现快速退出，panic打印出的堆栈信息可以更快地定位错误
+
+为了保证程序的健壮性，需要主动在程序的分支流程上调用recover函数拦截运行时错误
+
+Go提供了两种处理错误的方式，一种是借助panic和recover的抛出捕获机制，另一种是使用error错误类型
+
+### 2.6 错误处理
+
+Go的错误处理涉及接口的相关知识
+
+#### 2.6.1 error
+
+Go语言内置错误接口类型error。任何类型只要实现Error() string方法，都可以传递error接口类型变量。Go语言典型的错误处理方式是将error作为函数最后一个返回值。在调用函数时，通过检测其返回值的error值是否为nil来进行错误处理
+
+```go
+type error interfaces {
+    ERROR() string
+}
+```
+
+错误处理的最实践：
+
+- 在多个返回值的函数中，error通常作为函数的最后一个返回值
+- 如果一个函数返回error类型变量，则先用if语句处理error!=nil的异常场景，正常逻辑放在if语句块的后面，保持代码平坦
+- defer语句应该放到err判断的后面，不然有可能产生panic
+- 在错误逐级向上传递的过程中，错误信息应该不断地丰富和完善，而不是简单地抛出下层调用的错误。
+
+#### 2.6.2 错误和异常
+
+异常和错误在现代编程语言中是一对使用混乱的词语，下面将错误和异常做一个区分。
+
+广义上的错误：发生非期望的行为
+
+狭义上的错误：发生非期望的已知行为，这里的已知是指错误的类型是预料并定义好的
+
+异常：发生非期望的未知行为。这里的未知是指错误的类型不在预先定义的范围内
+
+（1）程序发生错误导致程序不能容错继续执行，此时程序应该主动调用panic或由运行时抛出panic
+
+（2）程序虽然发生错误，但是程序能够容错继续执行，此时应该使用错误返回值的方式处理错误，或者在可能产生运行是错误的非关键分支调用recover捕获panic
+
+## 3 类型系统
+
+Go语言的类型系统可以分为命名系统、非命名类型、底层类型、动态类型和静态类型
+
+### 3.1 类型介绍
+
+#### 3.1.1 命名类型和未命名类型
+
+##### 命名类型
+
+类型可以通过标识符来表示，这种类型称为命名类型。Go语言的基本类型中有20个预申明简单类型都是命名类型，Go语言还有一种命名类型，用户自定义类型
+
+##### 未命名类型
+
+一个类型由预申明类型、关键字和操作符组合而成，这个类型称为未命名类型。未命名类型又称为类型字面量
+
+Go语言中的基本类型的复合类型：数组、切片、字典、通道、指针、函数字面量、结构和接口都属于类型字面量，也都是未命名类型
+
+注意：前面所说的结构和接口是未命名类型，这里的结构和接口没有使用type定义
+
+```go
+package main
+
+import (
+	"fmt"
+)
+
+type Person struct{
+	name string
+	age int
+}
+
+func main() (){
+	a := struct{
+		name string
+		age int
+	}{"huanglin1", 18}
+
+	fmt.Printf("%T\n", a)
+	fmt.Printf("%v\n", a)
+
+	b := Person{"huanglin2", 24}
+	fmt.Printf("%T\n", b)
+	fmt.Printf("%v\n", b)
+}
+```
+
+#### 3.1.2 底层类型
+
+所有类型都有一个underlying type（底层类型）。底层类型的规则如下：
+
+（1）预申明类型(Pre-declared type)和类型字面量(type literals)的底层类型是它们自身。
+
+（2）自定义类型type newtype oldtype 中newtype的底层类型是逐层递归向下查找的
+
+#### 3.1.3 类型相同和类型赋值
+
+##### 类型相同
+
+Go是强类型的语言，编译器在编译时会进行严格的类型校验。两个命名类型是否相同，参考如下：
+
+（1）两个命名类型相同的条件是两个类型申明的语句完全相同
+
+（2）命名类型和未命名类型永远不相同
+
+（3）两个未命名类型相同的条件是他们的类型申明的字面量的结构相同，并且内部元素的类型相同
+
+（4）通过类型别名语句申明的两个类型相同
+
+##### 类型可直接进行赋值
+
+不同类型的变量之间一般是不能直接相互赋值的，除非满足一定的条件。下面探讨类型可赋值的条件。
+
+1. T1和T2的类型相同
+2. T1和T2具有相同的底层类型，并且T1和T2中至少有一个是未命名类型
+3. T2是接口类型，T1是具体类型，T1的方法集是T2方法集的超集
+4. T1和T2都是通道类型，它们拥有相同的元素类型，并且T1和T2中至少有一个未命名类型
+5. a是预申明标识符nil，T2是pointer、function、slice、map、channel、interface类型中的一个
+6. a是一个字面常量值，可以用来表示类型T的值
+
+```go
+package main
+
+import (
+	"fmt"
+)
+
+type Map map[string] string
+
+func (m Map) Print() {
+	for _, v := range m{
+		fmt.Println(v)
+	}
+}
+
+type iMap Map
+
+func (m iMap) Print() {
+	for _, v := range m{
+		fmt.Println(v)
+	}
+}
+
+type slice []int
+func (s slice) Print() {
+	for _, v := range s{
+		fmt.Println(v)
+	}
+}
+
+func main() (){
+	mp := make(map[string]string, 10)
+	mp["hi"] = "huanglin"
+
+	var mb Map = mp
+	var ma iMap = mp
+
+	ma.Print()
+	mb.Print()
+
+	var i interface{
+		Print()
+	} = ma
+	i.Print()
+	//它居然也能打印，数据是哪里来的
+	
+    //im与ma虽然拥有相同的底层类型，但是二者中没有一个是未命名类型，不能直接赋值，可以进行强制类型转换
+    //var im iMap = ma
+    var im iMap = (iMap) (ma)
+    
+	s1 := []int{1,2,3}
+	var s2 slice
+	s2 = s1
+	s2.Print()
+}
+```
+
+#### 3.1.4 类型强制转换
+
+由于Go是强类型的语言，如果不满足自动转换的条件，则必须进行强制类型转换。任意两个不相干的类型如果进行强制转换，则必须符合一定的规则。强制类型的语法格式：var a T = (T) (b)，使用括号将类型和要转换的变量或表达式的值括起来。
+
+非常量类型的变量x可以强制转化并传递给类型T，需要满足如下任一条件：
+
+1. x可以直接赋值给T类型变量
+2. x的类型和T具有相同的底层类型
+3. x的类型和T都是未命名的指针类型，并且指针指向的类型具有相同的底层类型
+4. x和T的类型都是整型或者都是浮点型
+5. x和T的类型都是复数类型
+6. x是整数值或[]byte类型的值，T是string类型
+7. x是字符串，T是[]byte或[]rune
+
+字符串和字符切片之间的转换最常见，实例如下：
+
+```go
+	s := "hello,世界"
+	var a []byte
+	a = ([]byte) (s)
+	var b string
+	b = (string) (a)
+	var c []rune
+	c = ([]rune) (s)
+	fmt.Println(a)
+	fmt.Println(b)
+	fmt.Println(c)
+```
+
+注意：
+
+1. 数值类型和string类型之间的相互转化可能会造成值部分丢失；其他的转换仅是类型的转换，不会造成值的改变。string和数字之间的转换可使用标准库strconv
+2. Go语言没有语言机制支持指针和interger之间的直接转换，可以使用标准包中的unsafe包进行处理
+
+
+
+### 3.2 类型方法
+
+为类型增加方法是Go语言实现面向对象编程的基础
+
+#### 3.2.1 自定义类型
+
+##### 自定义struct类型
+
+struct类型是Go语言自定义类型的普遍形式，是Go语言类型扩展的基础，也是Go语言面向对象承载的基础
+
+```go
+//使用type自定义的结构类型属于命名类型
+type xxx struct{
+    name string
+    age int
+}
+
+//结构字面量属于未命名类型
+struct {
+    name string
+    age int
+}
+var s = struct{}{}
+```
+
+##### struct初始化
+
+```go
+type Person struct{
+    name string
+    age int
+}
+```
+
+1. 按照字段顺序进行初始化
+
+```go
+//注意又是三种写法
+a := Person{"huanglin", 18}
+b := Preson{
+    "huanglin",
+    18,
+}
+c := Person{
+    "huanglin",
+    18}
+```
+
+这不是一种推荐的方法，一旦结构增加字段，则不得不修改顺序初始化语句
+
+2. 指定字段名进行初始化
+
+```go
+a := Person{name:"huanglin", age:18}
+
+b := Person{
+    name:"huanglin",
+    age:18
+}
+
+c := Person{
+    name:"haunglin",
+    age:18}
+```
+
+注意：如果上述两种结构的初始化语句的}独占一行，则最后一个字段末尾一定要带上逗号
+
+3. 使用new创建内置函数，字段默认初始化为其类型的零值，返回值是指向结构的指针
+
+```go
+p := new(Person)
+//此时name为"",age是0
+```
+
+这种方法不常用，一般使用struct都不会将所有字段初始化为零值。
+
+4. 一次初始化一个字段
+
+```go
+p := Person{}
+p.name = "huanglin"
+p.age = 11
+```
+
+这种方法不常用，这是一种结构化的编程思维，没有封装，违背了struct本身抽象封装的理念
+
+5. 使用构造函数进行初始化
+
+这是一种推荐的方法，当结构发生变化时，构造函数可以屏蔽细节
+
+##### 结构字段的特点
+
+结构的字段可以是任意的类型，基本类型、接口类型、指针类型、函数类型都可以作为struct的字段。结构字段的类型名必须唯一，struct字段类型可以是普通类型，也可以是指针。另外，结构支持内嵌自身的指针，这也是实现树形和链表等复杂数据结构的基础
+
+```go
+//标准库 container/list
+
+type Element struct{
+    next, prev *Element
+    list *list
+    Value interface{}
+}
+```
+
+##### 匿名字段
+
+在定义struct的过程中，如果字段只给出字段类型，没有给出字段名，则称这样的字段为匿名字段。被 匿名嵌入的字段必须是命名类型或命名类型的指针，未命名类型不能作为匿名字段使用。匿名字段的字段名默认就是类型名，如果匿名字段是指针类型，则默认的字段名就是指针指向的类型名。
+
+##### 自定义接口类型
+
+前面介绍了Go语言的类型系统和自定义类型，仅适用类型对数据进行抽象和封装还是不够的，本接介绍Go语言的类型方法。Go语言的类型方法是一种对类型行为的封装。Go语言的方法非常纯粹，可以看做特殊类型的函数，其显式地将对象实例或指针作为函数的第一个参数，并且参数名可以自己制定，而不强制要求一定是this或self。这个对象实例或指针称为方法的接收者
+
+为命名类型定义方法的语法格式如下：
+
+```go
+func (t TypeName)MethodName(Paramlist)(Returnlist){
+    //method body
+}
+
+func (t *TypeName)MethodName(Paramlist)(Returnlist){
+    //method body
+}
+```
+
+说明：
+
+- t是接收者，可以自由指定名称
+- TypeName为命名类型的类型名
+- MethodName为方法名
+- Paramlist为形参列表
+- Returnlist为返回值列表
+
+```go
+type SliceInt []int
+
+func (s SliceInt) Sum() int{
+    sum := 0
+    for _, i := range s{
+        sum += i
+    }
+    
+    return sum
+}
+```
+
+类型方法有如下特点：
+
+1. 可以为命名类型增加方法（除了接口），非命名类型不能自定义方法
+2. 为类型增加方法有一个限制，那就是方法和类型的定义必须在同一个包里
+3. 方法的命名空间的可见性和变量一样，大写开头的方法可以在包外被访问，否则只能在包内访问
+4. 使用type定义的自定义类型是一个新类型，新类型不能调用原有类型的方法，但是底层类型支持的运算可以被新类型继承
+
+### 3.3 方法调用
+
+#### 3.3.1 一般调用
+
+类型方法的一般调用方式：
+
+TypeInstanceName.MethodName(ParamList)
+
+- TypeInstanceName:类型实例名或者指向实例的指针变量名
+- MethodName:类型方法名
+- ParamList:方法实参
+
+```go
+type T struct{
+    a int
+}
+
+func (t *T) Get() (int){
+    return t.a
+}
+
+func (t *T) Set(i int) (){
+    t.a = i
+}
+
+t := T{}
+
+t.Set(2)
+
+t.Get()
+```
+
+#### 3.3.2 方法值（method value）
+
+变量x的静态类型是T，M是类型T的一个方法，x.T被称为方法值。x.T是一个函数类型的变量，可以赋值给其他变量，并像普通的函数名一样使用。
+
+```go
+f := x.M
+f(args...)
+```
+
+等价于
+
+```go
+x.M(args)
+```
+
+方法值其实是一个带有包的函数变量，其底层实现原理和带有闭包的匿名函数类似，接受值被隐式地绑定到方法值的闭包环境中。后续调用不需要显示地传递接收者
+
+#### 3.3.3 方法表达式(method expression)
+
+方法表达式相当于提供一种语法，将类型方法调用显式地转换为函数调用，接收者必须显示地传递进去
+
+表达式T.Get()和T.Set()被称为方法表达式
+
+#### 3.3.4 方法集(method set)
+
+命名类型接收者有两种类型，一个是值类型，一个是指针类型。
+
+无论接收者是什么类型，方法和函数的形参传递都是值拷贝。
+
+```go
+
+```
 
