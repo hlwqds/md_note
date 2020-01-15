@@ -1734,3 +1734,278 @@ func main() (){
 #### 函数命名类型
 
 type NewFuncType FuncLiteral
+
+#### 函数签名
+
+所谓函数	签名就是有名函数或匿名函数的字面量类型
+
+#### 函数申明
+
+## 4 接口
+
+接口是一个编程规约，也是一组方法签名的集合。Go的接口是非侵入式的设计，也就是说，一个具体类型实现接口不需要在语法上显式地申明，只要具体类型的方法集是接口方法集的超集，就代表该类型实现了接口，编译器会在编译时进行方法集的校验。接口是没有具体实现逻辑的也不能定义字段。
+
+### 变量和实例
+
+### 空接口
+
+最常使用的接口字面量类型就是空接口interface{},由于空接口的方法集为空，所以任意类型都被认为实现了空接口，任意类型的实例都可以赋值或者传递给空接口，包括非命名类型的实例。
+
+### 4.1 基本概念
+
+#### 4.4.1 接口申明
+
+Go语言的接口分为接口字面量类型和接口命名类型，接口的申明使用interface关键字
+
+接口字面量类型的申明语法如下：
+
+```go
+interface {
+    MethodSignature1
+    MethodSignature2
+}
+```
+
+接口命名类型使用type关键字申明：
+
+```go
+type InterfaceName interface {
+    MethodSignature1
+    MethodSignature2
+}
+```
+
+使用接口字面量的场景很少，一般只有空接口interface{}类型变量的申明是才会使用。
+
+接口定义大括号内可以是方法申明的集合，也可以嵌入另一个接口类型匿名字段，也可以是两者的混合。接口支持嵌入匿名接口字段，就是一个接口定义里可以包括其他接口，Go编译器会自动进行展开处理，有点类似C语言中宏的概念。
+
+```go
+type Reader interface {
+    Read(p []byte) (n int, err error)
+}
+
+type Writer interface {
+    Write(p []byte) (n int, err error)
+}
+
+//下面三种申明是等价的
+type ReadWriter interface {
+    Reader
+    Writer
+}
+
+type ReadWriter interface {
+    Read(p []byte) (n int, err error)
+    Write(p []byte) (n int, err error)
+}
+
+type ReadWriter interface {
+    Reader
+    Write(p []byte) (n int, err error)
+}
+```
+
+##### 申明新接口类型的特点
+
+1. 接口的命名一般都已er结尾
+2. 接口定义的内部方法申明不需要func引导
+3. 在接口定义中，只有方法申明，没有方法实现
+
+#### 4.1.2 接口初始化
+
+单纯地申明一个接口变量没有任何意义，接口只有被初始化为具体的类型时才有意义。接口作为一个胶水层或者抽象层，起到抽象和适配的作用。没有初始化的接口变量，其默认值是nil。
+
+接口绑定具体类型的实例的过程称为接口初始化。接口变量支持两种直接初始化方法。
+
+##### 实例赋值接口
+
+如果具体类型实例的方法集是某个接口的方法集的超集，则称该具体类型实现了接口，可以将该具体类型的实例直接赋值给接口类型的变量，此时编译器会进行静态的类型检查。接口被初始化后，调用接口的方法就相当于调用接口绑定的具体类型的方法。这就是接口调用的语义。
+
+##### 接口变量赋值接口变量
+
+已经初始化的接口类型变量a直接赋值给另一种接口变量b，要求b的方法集是a的方法集的子集。此时Go编译器会在编译时进行方法集静态检查。这个过程也是接口初始化的一种方式
+
+#### 4.1.3 接口方法调用
+
+接口方法调用和普通的函数调用是有区别的。接口方法调用的最终地址是在运行期决定的，将具体类型变量赋值给接口后，会使用具体类型的方法指针初始化接口变量，当调用接口变量的方法时，实际上是间接地调用实例的方法。接口方法调用不是一种直接的调用，有一定的运行时开销。
+
+直接调用未初始化的接口变量的方法会产生panic。
+
+```go
+package main
+
+type Printer interface {
+	Print() ()
+}
+
+type S struct{}
+
+func (s S) Print() (){
+	println("print")
+}
+
+func main() (){
+	var i Printer
+	//i.Print()
+	//为初始化的接口调用会产生panic
+
+	i = S{}
+	i.Print()
+}
+```
+
+#### 4.1.4 接口的动态类型和静态类型
+
+#####  动态类型
+
+接口绑定的具体实例的类型称为接口的动态类型。接口可以绑定不同类型的实例，所以接口的动态类型是随着其绑定的不同类型实例而发生变化的。
+
+##### 静态类型
+
+接口被定义时，其类型就已经被确定，这个类型被称为接口的静态类型。接口的静态类型在其定义时就被确定，静态类型的本质是及接口的方法签名集。两个接口如果方法签名集合相同，顺序可以不同，则这两个接口在语义上完全等价，他们之间不需要进行类型强制转换就可以相互赋值。
+
+### 4.2 接口运算
+
+接口是一个抽象的类型，接口像一层胶水，可以灵活地解耦软件的每一个层次，基于接口编程是Go语言的基本思想。
+
+有时我们需要知道已经初始化的接口变量绑定具体实例是什么类型，以及这个具体实例是否还实现了其他接口，这就要用到接口类型断言和接口类型查询
+
+#### 4.2.1 类型断言
+
+接口类型断言的语法形式如下：
+
+```go
+i.(TypeName)
+```
+
+i必须是接口变量，如果是具体类型变量，则编译器将会报错。
+
+TypeName可以是接口类型名，也可以是具体类型名。
+
+##### 接口查询的两层语义
+
+1. 如果TyepName是一个具体类型名，则类型断言用于判断接口变量i绑定的实例类型是否就是具体类型TypeName
+2. 如果TypeName是一个接口类型名，则类型断言用于判断接口变量i绑定的实例是否同时实现了TypeName接口
+
+##### 接口断言的两种语法表现
+
+直接赋值模式：
+
+o := i.(TypeName)
+
+语义分析：
+
+1. TypeName是具体类型名，此时如果接口i绑定的实例类型就是具体类型TypeName，则变量o的类型就是TypeName，o的值就是接口i绑定的实例的副本
+2. TypeName是接口类型名，此时如果接口绑定的实例满足接口TyeName，则变量o的类型就是接口类型TypeName，o底层绑定的就是接口i绑定的实例的副本
+3. 如果上述两种情况都不满足，则程序抛出panic
+
+```go
+package main
+import (
+	"fmt"
+)
+
+type Inter interface {
+	Ping()
+	Pong()
+}
+
+type Anter interface {
+	Inter
+	String()
+}
+
+type St struct {
+	Name string
+}
+
+func (s St) Ping(){
+	println("ping")
+}
+
+func (s St) Pong(){
+	println("pong")
+}
+
+func main() (){
+	st := &St{Name: "huanglin"}
+	var i interface{} = st
+	o := i.(Inter)
+	o.Ping()
+	o.Pong()
+
+//	p := i.(Anter)
+//	p.String()
+
+	s := i.(*St)
+	s.Ping()
+	s.Pong()
+	fmt.Printf("%s\n", s.Name)
+}
+```
+
+comma表达式模式如下：
+
+```go
+if o, ok := i.(TypeName); ok {
+    
+}
+```
+
+语义分析：
+
+1. TypeName是具体类型名，此时如果接口i绑定的实例类型就是具体类型TypeName，则变量o的类型就是TypeName，o的值就是接口i绑定的实例的副本，ok为true
+2. TypeName是接口类型名，此时如果接口绑定的实例满足接口TyeName，则变量o的类型就是接口类型TypeName，o底层绑定的就是接口i绑定的实例的副本，ok为true
+3. 如果上述两个都不满足，则ok为false。o是TypeName的零值。
+
+```go
+package main
+
+import (
+	"fmt"
+)
+
+type Inner interface {
+	Ping()
+	Pong()
+}
+
+type Outer interface {
+	Inner
+	Print()
+}
+
+type St struct {
+	Name string
+}
+
+func (s St)Ping(){
+	println("Ping")
+}
+
+func (s St)Pong(){
+	println("Pong")
+}
+
+func main() (){
+	var i interface{} = St{Name: "huanglin"}
+	
+	if o, ok := i.(Inner); ok{
+		o.Ping()
+		o.Pong()
+	}
+
+	if o, ok := i.(Outer); ok{
+		o.Ping()
+		o.Pong()
+		o.Print()
+	}
+
+	if o, ok := i.(St); ok{
+		o.Ping()
+		o.Pong()
+		fmt.Printf("%s\n", o.Name)
+	}
+}
+```
+
