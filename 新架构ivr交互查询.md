@@ -335,7 +335,7 @@ typedef struct __app_server_callback_argument__
     "caller" : "13260278209",
     "called" : "1001",
     "useNumber" : "02566699794",
-    "userQueryId" : "id_0000001",
+	"usrQueryId":"id_0000002",
     "inputKeys" : "1000",
     "variables" : [
 	    {"id_number" : "110108198703127621" },
@@ -379,7 +379,7 @@ typedef struct __app_server_callback_argument__
     //客户响应数据都将透传给cr，具体含义见api->cr_web的定义
     //可以为空，也可以和请求保重的userQueryId相同，也可以不同
     //不为空时，下次的交互查询节点会直接赋值userQueryId
-	"userQueryId":"id_0000002",
+	"usrQueryId":"id_0000002",
     
     //variables是请求包中variables的子集，需要赋值的参数必须要通过这个列表中返回
 	"variables": [
@@ -392,7 +392,7 @@ typedef struct __app_server_callback_argument__
     //用户返回的下一步参数，这个数据应当由api透传给cr，现cr已经定义好响应数据，所以和需求文档中的格式略有不同，具体数据参数见api->cr_web的消息定义
 	"nextAction" : {
 	    "action" : 1,
-		"paras" : {
+		"params" : {
 		    "voiceId" : "播放语音文件id",
 			"voiceName" : "播放语音文件唯一名称",
 			"allowBreak" : "是否允许打断: 0-不允许 1-允许"
@@ -441,7 +441,7 @@ typedef enum
 	"
 	{
 	    "rspCode" : 0,
-	    "userQueryId" : "id_0000001",
+        "usrQueryId":"id_0000002",
 	    "virtualKey" : "5",
 	    "variables" : [
 	         { "id_number" : "110108198703127621" },
@@ -472,7 +472,7 @@ json to cr
 	"ccNumber" : "",		//
     "data":"
         "rspCode" : 0,
-        "userQueryId" : "id_0000001",
+        "usrQueryId":"id_0000002",
         "variables" : [
             { "id_number" : "110108198703127621" },
             { "name" :"张三" },
@@ -480,7 +480,7 @@ json to cr
         ],
         "nextAction" : {
             "action" : 1,
-            "paras" : {
+            "params" : {
                 //下面四个参数选择其中之一
                 "voiceId" : "播放语音文件id",
                 "voiceName" : "播放语音文件唯一名称",
@@ -511,7 +511,7 @@ json to cr
 	"ccNumber" : "",		//
     "data":"
         "rspCode" : 0,
-        "userQueryId" : "id_0000001",
+        "usrQueryId":"id_0000002",
         "variables" : [
             { "id_number" : "110108198703127621" },
             { "name" :"张三" },
@@ -519,7 +519,7 @@ json to cr
         ],
         "nextAction" : {
             "action" : 2,
-            "paras" : {
+            "params" : {
                 //下面四个参数选择其中之一
                 "voiceId" : "播放语音文件id",
                 "voiceName" : "播放语音文件唯一名称",
@@ -554,7 +554,7 @@ json to cr
 	"ccNumber" : "",		//
     "data":"
         "rspCode" : 0,
-        "userQueryId" : "id_0000001",
+        "usrQueryId":"id_0000002",
         "variables" : [
             { "id_number" : "110108198703127621" },
             { "name" :"张三" },
@@ -562,7 +562,7 @@ json to cr
         ]
         "nextAction" : {
             "action" : 3,
-            "paras" : {
+            "params" : {
                 "acdId" : "技能组id",
                 "acdName" : "技能组名称",
                 "useAcdValue" : "0-不使用技能组配置 1-使用技能组配置",
@@ -592,7 +592,7 @@ json to cr
 	"ccNumber" : "",		//
     "data":"
         "rspCode" : 0,
-        "userQueryId" : "id_0000001",
+        "usrQueryId":"id_0000002",
         "variables" : [
             { "id_number" : "110108198703127621" },
             { "name" :"张三" },
@@ -600,7 +600,7 @@ json to cr
         ]
         "nextAction" : {
             "action" : 4,
-            "paras" : {
+            "params" : {
                 "workNumber" : "1001,1002,1003",
                 "number" : "1001,1002,1003",
                 "queueTime" : "坐席忙时排队时长",
@@ -626,7 +626,7 @@ json to cr
 	"ccNumber" : "",		//
     "data":"
         "rspCode" : 0,
-        "userQueryId" : "id_0000001",
+        "usrQueryId":"id_0000002",
         "variables" : [
             { "id_number" : "110108198703127621" },
             { "name" :"张三" },
@@ -634,7 +634,7 @@ json to cr
         ]
         "nextAction" : {
             "action" : 5,
-            "paras" : {
+            "params" : {
                 "called" : "外线被叫号码",
                 "outNumber" : "呼出总机号码"
             }
@@ -659,7 +659,7 @@ json to cr
 	"ccNumber" : "",		//
     "data":"
         "rspCode" : 0,
-        "userQueryId" : "id_0000001",
+        "usrQueryId":"id_0000002",
         "variables" : [
             { "id_number" : "110108198703127621" },
             { "name" :"张三" },
@@ -667,7 +667,7 @@ json to cr
         ]
         "nextAction" : {
             "action" : 6,
-            "paras" : {
+            "params" : {
                 "ivrFlowId" : "IVR流程id",
                 "ivrFlowName" : "IVR流程名称"
             }
@@ -689,7 +689,7 @@ json to cr
 	"ccNumber" : "",		//
     "data":"
         "rspCode" : 0,
-        "userQueryId" : "id_0000001",
+        "usrQueryId":"id_0000002",
         "variables" : [
             { "id_number" : "110108198703127621" },
             { "name" :"张三" },
@@ -807,6 +807,14 @@ if(是查询请求)
 被叫查询api会直接根据消息数据入库，和之前的处理方式保持一致即可。
 
 ## 5 涉及代码
+
+
+
+
+
+```
+select `id`,`seid`,`ccgeid`,`task_name`,`status`,`task_start_time`,`task_end_time`,`call_progress`,`total_customers`,`customer_locked`,`customer_called`,`customer_aborted`,`customer_call_times`,`customer_ring_times`,`customer_answer_times`,`import_status`,`create_time`,`update_time` from emicall_cc_man.preview_call_tasks where seid=19 and task_start_time!=0 and status!=3 and status!=5 and task_end_time=0 and create_time >= 1576425600 and create_time <= 1579103999 and id in (select distinct task_id from emicall_cc_man.preview_task_group_seat where service_ccgeid in (174,175,177,181,182)) order by id desc limit 50
+```
 
 
 
