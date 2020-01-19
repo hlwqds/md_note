@@ -356,17 +356,19 @@ typedef struct __app_server_callback_argument__
 
 ```json
 {
-    //0:允许通话，否则失败
-    "retcode": 0,
-    //返回被叫
-    "action": 0,
-    "called": "1****211",
-    "number": "1002",
-    "workNumber": "test",
-    "waitTime": 20,
-    "outNumber":"02566687**1",
-    "reason": "原因描述",
-    "userdata": "用户数据"
+    "response":{
+        //0:允许通话，否则失败
+        "retcode": 0,
+        //返回被叫
+        "action": 0,
+        "called": "1****211",
+        "number": "1002",
+        "workNumber": "test",
+        "waitTime": 20,
+        "outNumber":"02566687**1",
+        "reason": "原因描述",
+        "userdata": "用户数据"
+    }
 }
 //其中number>workNumber>called,这三个都是被叫选项，三者选一。被叫如果传多个，会按顺序拨打直至拨打完毕
 ```
@@ -375,30 +377,32 @@ typedef struct __app_server_callback_argument__
 
 ```json
 {
-    "retcode": 0,
-    //客户响应数据都将透传给cr，具体含义见api->cr_web的定义
-    //可以为空，也可以和请求保重的userQueryId相同，也可以不同
-    //不为空时，下次的交互查询节点会直接赋值userQueryId
-	"usrQueryId":"id_0000002",
-    
-    //variables是请求包中variables的子集，需要赋值的参数必须要通过这个列表中返回
-	"variables": [
-	    {"id_number" : "110108198703127621" },
-		{"name" :"" },
-		{"address":"" }
-    ],
-    //虚拟键值，交互收键模式时的响应参数
-    "virtualKey":"1111",
-    //用户返回的下一步参数，这个数据应当由api透传给cr，现cr已经定义好响应数据，所以和需求文档中的格式略有不同，具体数据参数见api->cr_web的消息定义
-	"nextAction" : {
-	    "action" : 1,
-		"params" : {
-		    "voiceId" : "播放语音文件id",
-			"voiceName" : "播放语音文件唯一名称",
-			"allowBreak" : "是否允许打断: 0-不允许 1-允许"
-		}
-	},
-    "userData":"FE87D3"
+    "response":{
+        "retcode": 0,
+        //客户响应数据都将透传给cr，具体含义见api->cr_web的定义
+        //可以为空，也可以和请求保重的userQueryId相同，也可以不同
+        //不为空时，下次的交互查询节点会直接赋值userQueryId
+        "usrQueryId":"id_0000002",
+
+        //variables是请求包中variables的子集，需要赋值的参数必须要通过这个列表中返回
+        "variables": [
+            {"id_number" : "110108198703127621" },
+            {"name" :"" },
+            {"address":"" }
+        ],
+        //虚拟键值，交互收键模式时的响应参数
+        "virtualKey":"1111",
+        //用户返回的下一步参数，这个数据应当由api透传给cr，现cr已经定义好响应数据，所以和需求文档中的格式略有不同，具体数据参数见api->cr_web的消息定义
+        "nextAction" : {
+            "action" : 1,
+            "params" : {
+                "voiceId" : "播放语音文件id",
+                "voiceName" : "播放语音文件唯一名称",
+                "allowBreak" : "是否允许打断: 0-不允许 1-允许"
+            }
+        },
+        "userData":"FE87D3"
+    }
 }
 ```
 
@@ -809,12 +813,6 @@ if(是查询请求)
 ## 5 涉及代码
 
 
-
-
-
-```
-select `id`,`seid`,`ccgeid`,`task_name`,`status`,`task_start_time`,`task_end_time`,`call_progress`,`total_customers`,`customer_locked`,`customer_called`,`customer_aborted`,`customer_call_times`,`customer_ring_times`,`customer_answer_times`,`import_status`,`create_time`,`update_time` from emicall_cc_man.preview_call_tasks where seid=19 and task_start_time!=0 and status!=3 and status!=5 and task_end_time=0 and create_time >= 1576425600 and create_time <= 1579103999 and id in (select distinct task_id from emicall_cc_man.preview_task_group_seat where service_ccgeid in (174,175,177,181,182)) order by id desc limit 50
-```
 
 
 
