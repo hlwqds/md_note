@@ -4,49 +4,30 @@ import (
 	"sync"
 	"time"
 	"fmt"
+	"github.com/go-redis/redis/v7"
 )
 
 type taskStruct struct{
-	begin int
-	end int
+	fd *redis.Client
 	result chan int
 }
 
 func (t *taskStruct)do(){
-	sum := 0
-	//fmt.Println(t)
-	for i := t.begin; i < t.end; i++{
-		sum += i
-	}
-	t.result <- sum
+	t.fd.Set("key", "value", 0).Err()
+
+	t.result <- 1
 }
 
-func InitTask(taskChan chan taskStruct, r chan int, p int)(){
-	qu := p / 10
-	mod := p % 10
-	high := qu *10
+func InitTask(taskChan chan taskStruct, r chan int, client *redis.Client)(){
 
-	for j := 0; j < qu; j++{
-		b := 10 * j + 1
-		e := 10 * (j + 1)
+	for i := 0; i < 10000000; i++{
 		task := taskStruct{
-			begin: b,
-			end: e,
+			fd: client,
 			result: r,
 		}
 		taskChan <- task
 	}
 
-	if mod != 0{
-		task := taskStruct{
-			begin: high + 1,
-			end: p,
-			result: r,
-		}
-		taskChan <- task
-	}
-	time.Sleep(5 * time.Second)
-	fmt.Println("close to break loop")
 	close(taskChan)
 }
 
@@ -56,14 +37,12 @@ func ProcessingTask(task taskStruct, wait *sync.WaitGroup){
 }
 
 func distriubteTask(taskChan chan taskStruct, wait *sync.WaitGroup, result chan int)(){
-	fmt.Printf("%T\n", taskChan)
 	for v := range taskChan{
 		wait.Add(1)
 		//fmt.Println(v)
 		go ProcessingTask(v, wait)
 	}
 
-	fmt.Println("通道关闭我才会退出循环")
 	wait.Wait()
 	close(result)
 }
@@ -71,7 +50,6 @@ func distriubteTask(taskChan chan taskStruct, wait *sync.WaitGroup, result chan 
 func ProcessResult(resultChan chan int) (int){
 	sum := 0
 	for v := range resultChan{
-		fmt.Println(v)
 		sum += v
 	}
 
@@ -79,14 +57,22 @@ func ProcessResult(resultChan chan int) (int){
 }
 
 func main(){
+	client := redis.NewClient(&redis.Options{
+		Addr:     "148.70.52.135:6379",
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
+
 	taskChan := make(chan taskStruct, 10)
 	resultChan := make(chan int, 10)
 	wait := &sync.WaitGroup{}
-
-	go InitTask(taskChan, resultChan, 74)
+	time1 := time.Now().Unix()
+	go InitTask(taskChan, resultChan, client)
 
 	go distriubteTask(taskChan, wait, resultChan)
 
 	sum := ProcessResult(resultChan)
-	println(sum)
+	time2 := time.Now().Unix()
+	fmt.Println(time2 - time1)
+	fmt.Println(sum)
 }
