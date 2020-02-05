@@ -2009,7 +2009,6 @@ func main() (){
 }
 ```
 
-<<<<<<< HEAD
 #### 4.2.2 类型查询
 
 接口类型查询的语法格式如下：
@@ -2173,125 +2172,7 @@ goroutine有如下特性：
 
    func Goexit()是结束当前goroutine
 
-线程：
+#### 5.2.4 固定worker工作池
 
-1. 初始化任务线程分析数据生成任务，并且将任务发送至任务通道。如果是有限的任务，适时关闭任务通道
-2. 分配任务线程初始化了固定数量的工作线程，这些工作线程会循环读取任务通道中的任务数据，直到通道关闭
-3. 收敛结果的goroutine接收到所有task已经处理完毕的信号后主动关闭结果通道
-
-通道：
-
-1. 任务通道，10
-2. 结果通道，10
-3. 完成通道，10
-
-#### 5.2.5 future 模式
-
-编程中经常遇到在一个流程中调用多个子调用的情况，这些子调用之间没有依赖，如果串行的调用，则耗时会很长，此时可以使用Go并发编程中的future模式。
-
-future模式的基本工作原理：
-
-1. 使用chan作为函数参数。
-2. 启用goroutine调用函数
-3. 通过chan传入参数
-4. 做其他可以并行处理的事情
-5. 通过chan异步获取结果
-
-
-
-```go
-package main
-
-import (
-	"fmt"
-	"time"
-)
-
-type query struct{
-	sql chan string
-	result chan string
-}
-
-func execQuery(q query)(){
-	go func(){
-		sql := <-q.sql
-
-		q.result <- "result from " + sql
-		close(q.result)
-	}()
-}
-
-func main(){
-	q := query{
-		sql: make(chan string, 1),
-		result: make(chan string ,1),
-	}
-
-	execQuery(q)
-	q.sql <- "select *from tables"
-	close(q.sql)
-	
-	//do something
-	time.Sleep(1 * time.Second)
-
-	fmt.Println(<-q.result)
-}
-```
-
-future最大的好处是将函数的同步调用转换为异步调用，
-
-### 5.3 context标准库
-
-Go中的goroutine之间没有父与子的关系，也就没有所谓子进程退出后的通知机制，多个goroutine都是平行的被调度，多个goroutine如何协作工作涉及通信、同步、通知和退出四个方面。
-
-通信： chan通知时goroutine之间通信的基础，注意这里的通信主要是指程序的数据通道
-
-同步：不带缓冲的chan提供了一个天然的同步等待机制。sync.WaitGroup也为多个goroutine协同工作提供了一种同步等待机制
-
-通知：这个通知和通信不同，带的是管理、控制流数据。通过select进行收敛处理。
-
-退出：通过新增一个单独的通道，借助通道和select的广播机制实现退出
-
-context库的设计目的就是跟踪goroutine调用，在其内部维护一个调用树，并在这些调用树中传递通知和元数据
-
-#### 5.3.1 context的设计目的
-
-1. 退出通知机制
-2. 传递数据（不建议）
-
-## 6 反射
-
-### 6.2 反射规则
-
-#### 6.2.1 反射api
-
-1. 从实例到Value
-
-通过实例获取Value对象，直接使用reflect.ValueOf()函数。例如：
-
-func ValueOf(i interface{}) Value
-
-2. 从实例到Type
-
-通过实例获取反射对象的Type，直接使用reflect.TypeOf()函数。例如：
-
-func TypeOf(i interface{}) Value
-
-3. 从Type到Value
-
-Type里面只有类型信息，所以直接从一个Type接口变量里面是无法获取实例的Value的，但是可以通过该Type构建一个新实例的Value。
-
-4. 从Value到Type
-
-func (v Value) Type() Type
-
-5. 从Value到实例
-
-将value转换为空接口，该空接口内部存放具体类型实例
-
-func (v Value) Interface() (i interface{})
-
-6. 从value的指针到值
-
-## 7 语言陷阱
+服务器编程中使用最多的就是通过线程池来提升服务的并发处理能力。在go语言编程中，一样可以轻松的构建固定数量的goroutines作为工作线程池
 
