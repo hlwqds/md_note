@@ -65,3 +65,7 @@ apd模块主要是通过http协议将cr的数据发送到api，发往api的消�
 
 {  "ccNumber": "1580883673785822conf_1580883703673", "eid": 65656, "type": 0, "callId": "1580883673785822conf_1580883703673", "caller": "902566699734", "isCaller": 1, "number": "1004_00010078", "step": 0, "called": "1004_00010078", "status": 0, "timestamp": "1580883703" }
 
+https://emicall-cr.emicloud.com
+
+CQu9vlXkNDlABJh4
+
