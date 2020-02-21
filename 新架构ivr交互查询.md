@@ -335,7 +335,7 @@ typedef struct __app_server_callback_argument__
     "caller" : "13260278209",
     "called" : "1001",
     "useNumber" : "02566699794",
-	"usrQueryId":"id_0000002",
+	"userQueryId":"id_0000002",
     "inputKeys" : "1000",
     "variables" : [
 	    {"id_number" : "110108198703127621" },
@@ -382,7 +382,7 @@ typedef struct __app_server_callback_argument__
         //客户响应数据都将透传给cr，具体含义见api->cr_web的定义
         //可以为空，也可以和请求保重的userQueryId相同，也可以不同
         //不为空时，下次的交互查询节点会直接赋值userQueryId
-        "usrQueryId":"id_0000002",
+        "userQueryId":"id_0000002",
 
         //variables是请求包中variables的子集，需要赋值的参数必须要通过这个列表中返回
         "variables": [
@@ -445,7 +445,7 @@ typedef enum
 	"
 	{
 	    "rspCode" : 0,
-        "usrQueryId":"id_0000002",
+        "userQueryId":"id_0000002",
 	    "virtualKey" : "5",
 	    "variables" : [
 	         { "id_number" : "110108198703127621" },
@@ -476,7 +476,7 @@ json to cr
 	"ccNumber" : "",		//
     "data":"
         "rspCode" : 0,
-        "usrQueryId":"id_0000002",
+        "userQueryId":"id_0000002",
         "variables" : [
             { "id_number" : "110108198703127621" },
             { "name" :"张三" },
@@ -515,7 +515,7 @@ json to cr
 	"ccNumber" : "",		//
     "data":"
         "rspCode" : 0,
-        "usrQueryId":"id_0000002",
+        "userQueryId":"id_0000002",
         "variables" : [
             { "id_number" : "110108198703127621" },
             { "name" :"张三" },
@@ -558,7 +558,7 @@ json to cr
 	"ccNumber" : "",		//
     "data":"
         "rspCode" : 0,
-        "usrQueryId":"id_0000002",
+        "userQueryId":"id_0000002",
         "variables" : [
             { "id_number" : "110108198703127621" },
             { "name" :"张三" },
@@ -596,7 +596,7 @@ json to cr
 	"ccNumber" : "",		//
     "data":"
         "rspCode" : 0,
-        "usrQueryId":"id_0000002",
+        "userQueryId":"id_0000002",
         "variables" : [
             { "id_number" : "110108198703127621" },
             { "name" :"张三" },
@@ -630,7 +630,7 @@ json to cr
 	"ccNumber" : "",		//
     "data":"
         "rspCode" : 0,
-        "usrQueryId":"id_0000002",
+        "userQueryId":"id_0000002",
         "variables" : [
             { "id_number" : "110108198703127621" },
             { "name" :"张三" },
@@ -663,7 +663,7 @@ json to cr
 	"ccNumber" : "",		//
     "data":"
         "rspCode" : 0,
-        "usrQueryId":"id_0000002",
+        "userQueryId":"id_0000002",
         "variables" : [
             { "id_number" : "110108198703127621" },
             { "name" :"张三" },
@@ -693,7 +693,7 @@ json to cr
 	"ccNumber" : "",		//
     "data":"
         "rspCode" : 0,
-        "usrQueryId":"id_0000002",
+        "userQueryId":"id_0000002",
         "variables" : [
             { "id_number" : "110108198703127621" },
             { "name" :"张三" },
