@@ -302,6 +302,8 @@ typedef struct __app_server_callback_argument__
 
 1. 99/98 99和98向客户的请求信息保持不变
 
+json
+
 ```json
 {
 	'appId':'b23abb6d451346efa13370172d1921ef',
@@ -316,7 +318,31 @@ typedef struct __app_server_callback_argument__
     'userData':"FE87D3"
 }
 ```
+xml
+```xml
+<request>
+    <callType>5</callType>
+    <type>97</type>
+    <accountSid>42f7de84ff2ea9b4d71c2aa667455249</accountSid>
+    <subAccountSid>51d17d870e0c1da85869580195b31f1d</subAccountSid>
+    <appId>68a87b1250011b35cfb244f04a27ca9d</appId>
+    <callId>1582511927.526072</callId><caller>15861800293</caller>
+    <called>0252133</called>
+    <useNumber>02566687671</useNumber><usrQueryId>1</usrQueryId>
+    <inputKeys>1</inputKeys>
+    <userData></userData>
+    <variables>
+        <variable>
+            <name>777</name>
+            <value>ddd</value>
+        </variable>
+        <variable>
+            <name>232</name>
+            <value>aa</value>
+        </variable>
+    </variables></request>
 
+```
 2. 95,96和97消息需要使用新架构新的消息格式
 
 新架构的查询场景不再限于呼入场景，api客户可能需要知道主叫或被叫是坐席还是客户，callType需要传给客户
@@ -346,6 +372,30 @@ typedef struct __app_server_callback_argument__
 
 }
 说明：在上例中，有3个全局变量：id_number、name和address，id_number已经赋值，name和address未赋值，需要用户服务器返回，并在IVR其它节点中引用。
+```
+
+```xml
+<request>
+    <callType>5</callType>
+    <type>97</type>
+    <accountSid>42f7de84ff2ea9b4d71c2aa667455249</accountSid>
+    <subAccountSid>51d17d870e0c1da85869580195b31f1d</subAccountSid>
+    <appId>68a87b1250011b35cfb244f04a27ca9d</appId>
+    <callId>1582511927.526072</callId><caller>15861800293</caller>
+    <called>0252133</called>
+    <useNumber>02566687671</useNumber><usrQueryId>1</usrQueryId>
+    <inputKeys>1</inputKeys>
+    <userData></userData>
+    <variables>
+        <variable>
+            <name>777</name>
+            <value>ddd</value>
+        </variable>
+        <variable>
+            <name>232</name>
+            <value>aa</value>
+        </variable>
+    </variables></request>
 ```
 
 
@@ -731,46 +781,7 @@ asynccallpush到appcallback只需要将ivr的特有数据透传就行。
 appcallback到appserver因为type和calltype的含义已经变化，在原有的结构上进行扩展已经不适合了。下面是appcallback的新逻辑。
 
 ```c
-if(是查询请求)
-{
-    //向用户服务器进行请求
-    if(callback_request->type != 95 && 96 && 97)
-    {
-        //请求逻辑保持不变
-    }
-    else
-    {
-        //封装请求
-        //根据类型调用回调函数，因为都是95或96或97，直接调用通用交互式ivr回调函数
-    }
 
-    if(新架构)
-    {
-    	if(callback_request->type == 99 || 98)
-    	{
-    		//解析响应结构，存入给cr_web请求结构
-            //用户的返回的数据如果是json，直接将需要的键值对转成字符串透传
-            //如果是xml，先转成json后按json进行处理
-    	}
-    	else
-    	{
-    		//解析响应结构，存入给cr_web的请求结构
-            //用户的返回的数据如果是json，直接将需要的键值对转成字符串透传
-            //如果是xml，先转成json后按json进行处理
-    	}
-        
-        //向cr_web发送请求
-    }
-	else
-	{
-	
-	}
-	
-    if(callback_request->type != 95 && 96 && 97)
-	{
-		//更新call_records和call_details
-	}
-}
 ```
 
 
