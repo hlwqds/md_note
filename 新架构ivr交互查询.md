@@ -375,27 +375,28 @@ xml
 ```
 
 ```xml
-<request>
-    <callType>5</callType>
-    <type>97</type>
-    <accountSid>42f7de84ff2ea9b4d71c2aa667455249</accountSid>
-    <subAccountSid>51d17d870e0c1da85869580195b31f1d</subAccountSid>
-    <appId>68a87b1250011b35cfb244f04a27ca9d</appId>
-    <callId>1582511927.526072</callId><caller>15861800293</caller>
-    <called>0252133</called>
-    <useNumber>02566687671</useNumber><usrQueryId>1</usrQueryId>
-    <inputKeys>1</inputKeys>
-    <userData></userData>
-    <variables>
-        <variable>
-            <name>777</name>
-            <value>ddd</value>
-        </variable>
-        <variable>
-            <name>232</name>
-            <value>aa</value>
-        </variable>
-    </variables></request>
+<?xml version="1.0" encoding="utf-8"?>
+<response>
+    <retcode>0</retcode>
+    <userQueryId>1</userQueryId>
+    <userData>FE87D3</userData>
+    <variable>
+        <name>725</name>
+        <value>1582726762</value>
+    </variable>
+    <variable>
+        <name>111</name>
+        <value>1582726762</value>
+    </variable>
+    <nextAction>
+        <action>2</action>
+        <params>
+            <voiceId>1</voiceId>
+            <voiceName>dwad</voiceName>
+            <allowBreak>1</allowBreak>
+        </params>
+    </nextAction>
+</response>
 ```
 
 
