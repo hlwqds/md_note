@@ -8,12 +8,11 @@ import (
 	"runtime"
 )
 
-
-func GenerateIntA() (chan int){
+func GenerateIntA() chan int {
 	println("我们不会重复调用")
 	ch := make(chan int, 10)
-	go func(){
-		for{
+	go func() {
+		for {
 			ch <- rand.Int()
 			println(ch)
 		}
@@ -22,11 +21,11 @@ func GenerateIntA() (chan int){
 	return ch
 }
 
-func GenerateIntB() (chan int){
+func GenerateIntB() chan int {
 	println("我们不会重复调用")
 	ch := make(chan int, 10)
-	go func(){
-		for{
+	go func() {
+		for {
 			ch <- rand.Int()
 			println(ch)
 		}
@@ -35,11 +34,11 @@ func GenerateIntB() (chan int){
 	return ch
 }
 
-func GenerateInt() (chan int){
+func GenerateInt() chan int {
 	ch := make(chan int, 20)
-	go func(){
-		for{
-			select{
+	go func() {
+		for {
+			select {
 			case ch <- <-GenerateIntA():
 			case ch <- <-GenerateIntB():
 			}
@@ -49,9 +48,9 @@ func GenerateInt() (chan int){
 	return ch
 }
 
-func main(){
+func main() {
 	ch := GenerateInt()
-	for i := 0; i < 100; i++{
+	for i := 0; i < 100; i++ {
 		fmt.Println(<-ch)
 	}
 	fmt.Println("NumGoroutine=", runtime.NumGoroutine())

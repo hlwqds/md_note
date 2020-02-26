@@ -7,11 +7,11 @@ import (
 	"math/rand"
 )
 
-func GenerateIntA() (chan int){
+func GenerateIntA() chan int {
 	ch := make(chan int, 10)
-	go func(){
-		for{
-			select{
+	go func() {
+		for {
+			select {
 			case ch <- rand.Int():
 			}
 		}
@@ -20,7 +20,7 @@ func GenerateIntA() (chan int){
 	return ch
 }
 
-func main(){
+func main() {
 	ch := GenerateIntA()
 	fmt.Println(<-ch)
 	fmt.Println(<-ch)
