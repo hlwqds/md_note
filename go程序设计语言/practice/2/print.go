@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"os"
 )
 
 func main() {
@@ -31,4 +32,24 @@ func main() {
 	//NaN的比较结果总不成立
 	nan := math.NaN()
 	fmt.Println(nan == nan, nan > nan, nan < nan)
+
+	var m complex128 = complex(1, 2)
+	var n complex128 = complex(3, 4)
+
+	fmt.Println(m * n)
+	fmt.Println(real(m * n))
+	fmt.Println(imag(m * n))
+
+	fmt.Println(1i * 1i)
+
+	str := "\u4e16"
+
+	fmt.Println("\u4e16")
+	fmt.Println(len(str))
+	str = `awddawd\n`
+	fmt.Println(str)
+
+	fptr, _ := os.Create("test.txt")
+	fmt.Fprintln(fptr, "\u4e16")
+	fptr.Close()
 }
