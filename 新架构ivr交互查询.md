@@ -591,9 +591,7 @@ json to cr
         },
         "reason" : "test",
         "userdata" : "test"
-    "
 }
-
 ```
 
 ##### 3.3.2.3 转技能组响应
@@ -631,7 +629,6 @@ json to cr
         "userdata" : "test"
     "
 }
-
 ```
 
 ##### 3.3.2.4 转座席响应
@@ -698,7 +695,6 @@ json to cr
         "userdata" : "test"
     "
 }
-
 ```
 
 ##### 3.3.2.6 转其他IVR流程响应
@@ -757,7 +753,6 @@ json to cr
         "userdata" : "test"
     "
 }
-
 ```
 
 
@@ -782,10 +777,8 @@ asynccallpush到appcallback只需要将ivr的特有数据透传就行。
 appcallback到appserver因为type和calltype的含义已经变化，在原有的结构上进行扩展已经不适合了。下面是appcallback的新逻辑。
 
 ```c
-
+//
 ```
-
-
 
 
 
