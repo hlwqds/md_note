@@ -1,0 +1,47 @@
+package main
+
+import (
+	"fmt"
+	"os"
+
+	"golang.org/x/net/html"
+)
+
+func main() {
+	doc, err := html.Parse(os.Stdin)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "findlinks1: %v\n", err)
+		os.Exit(1)
+	}
+	for _, link := range visit(nil, doc) {
+		fmt.Println(link)
+	}
+}
+
+func searchList(links []string, n *html.Node) []string{
+	if n != nil{
+		links = visit(links, n)
+	}
+	
+	if n.NextSibling != nil{
+		links = searchList(links, n.NextSibling)
+	}
+
+	return links
+}
+
+func visit(links []string, n *html.Node) []string{
+	if n.Type == html.ElementNode && n.Data == "a"{
+		for _, a := range n.Attr{
+			if a.Key == "href"{
+				links = append(links, a.Val)
+			}
+		}
+	}
+
+	if n.FirstChild != nil{
+		links = searchList(links, n.FirstChild)
+	}
+
+	return links
+}
