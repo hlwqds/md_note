@@ -55,4 +55,6 @@ func main() {
 	array := [testLen]int{2, 3, 4, 3, 5, 6, 3, 5}
 	reverse2(&array)
 	fmt.Println(array)
+
+	fmt.Println(array[:0])
 }
