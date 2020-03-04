@@ -11,6 +11,12 @@ type IssueSearchResult struct {
 	Items      []*Issue
 }
 
+//User class
+type User struct {
+	Login   string
+	HTMLURL string `josn:"html_url"`
+}
+
 //Issue class
 type Issue struct {
 	Number    int
