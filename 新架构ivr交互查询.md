@@ -372,7 +372,7 @@ json
 
 #### 3.2.2 客户响应
 
-1. 98/99返回数据
+##### 3.2.2.1 98/99返回数据
 
 ```json
 {
@@ -393,7 +393,9 @@ json
 //其中number>workNumber>called,这三个都是被叫选项，三者选一。被叫如果传多个，会按顺序拨打直至拨打完毕
 ```
 
-2. 95/96/97
+##### 3.2.2.2 95/96/97
+
+通用格式
 
 ```json
 {
@@ -448,7 +450,126 @@ json
 </response>
 ```
 
+###### 3.2.2.2.1 nextAction放音
 
+json
+
+```json
+"nextAction" : {
+    "action" : 1,
+    "params" : {
+        //下面四个参数选择其中之一
+        "voiceId" : "播放语音文件id",
+        "voiceName" : "播放语音文件唯一名称",
+        "voiceTempId": "播放语音模板id",
+        "voiceTempName": "播放语音模板名称",
+        //语音模板参数，多个参数见用英文","号隔开，当选择voiceTempId或者voiceTempName时需要传入
+        "voiceTempParams": "语音模板参数",
+
+        "allowBreak" : "是否允许打断: 0-不允许 1-允许"
+    }
+}
+```
+
+xml
+
+```xml
+<nextAction>
+    <action>2</action>
+    <params>
+        <voiceId>1</voiceId>
+        <voiceName>dwad</voiceName>
+        <allowBreak>1</allowBreak>
+    </params>
+</nextAction>
+```
+
+###### 3.2.2.2.2 nextAction放音收键
+
+json
+
+```json
+"nextAction" : {
+    "action" : 2,
+    "params" : {
+        //下面四个参数选择其中之一
+        "voiceId" : "播放语音文件id",
+        "voiceName" : "播放语音文件唯一名称",
+        "voiceTempId": "播放语音模板id",
+        "voiceTempName": "播放语音模板名称",
+        //语音模板参数，多个参数见用英文","号隔开，当选择voiceTempId或者voiceTempName时需要传入
+        "voiceTempParams": "语音模板参数",
+
+        "allowBreak" : "是否允许打断: 0-不允许 1-允许",
+        "getKeyNumber" : "获取按键位数",
+        "getKeyTimeout" : "收键超时时间",
+        "endWithHashKey" : "是否以#号键结束, 0-不是, 1-是"
+    }
+}
+```
+
+###### 3.2.2.2.3 nextAction转技能组
+
+```json
+"nextAction" : {
+    "action" : 3,
+    "params" : {
+        "acdId" : "技能组id",
+        "acdName" : "技能组名称",
+        "useAcdValue" : "0-不使用技能组配置 1-使用技能组配置",
+        "queueTime" : "排队超时时长",
+        "switchTimes" : "坐席流转次数",
+        "ringTimeout" : "坐席振铃超时时长",
+        "customerMemory" : "0-不记忆 1-优先熟客记忆 2-强制熟客记忆"
+    }
+}
+```
+
+###### 3.2.2.2.4 nextAction转坐席
+
+```json
+"nextAction" : {
+    "action" : 4,
+    "params" : {
+        "workNumber" : "1001,1002,1003",
+        "number" : "1001,1002,1003",
+        "queueTime" : "坐席忙时排队时长",
+        "ringTimeout" : "多坐席情况下，坐席振铃超时时长",
+    }
+}
+```
+
+###### 3.2.2.2.5 nextAction转外线
+
+```json
+"nextAction" : {
+    "action" : 5,
+    "params" : {
+        "called" : "外线被叫号码",
+        "outNumber" : "呼出总机号码"
+    }
+}
+```
+
+###### 3.2.2.2.6 nextAction转其他IVR流程
+
+```json
+"nextAction" : {
+    "action" : 6,
+    "params" : {
+        "ivrFlowId" : "IVR流程id",
+        "ivrFlowName" : "IVR流程名称"
+    }
+}
+```
+
+###### 3.2.2.2.7 nextAction结束IVR流程
+
+```json
+"nextAction" : {
+    "action" : 7
+}
+```
 
 ### 3.3 api->cr_web
 
@@ -649,7 +770,7 @@ json to cr
                 "queueTime" : "坐席忙时排队时长",
                 "ringTimeout" : "多坐席情况下，坐席振铃超时时长"
             }
-        }
+        }，
         "reason" : "test",
         "userdata" : "test"
     "
