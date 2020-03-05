@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"golang.org/x/net/html"
+
 )
 
 func main() {
@@ -18,28 +19,28 @@ func main() {
 	}
 }
 
-func searchList(links []string, n *html.Node) []string{
-	if n != nil{
-		links = visit(links, n)
+func searchList(links []string, n *html.Node) []string {
+	if n != nil {
+		links = visit1(links, n)
 	}
-	
-	if n.NextSibling != nil{
+
+	if n.NextSibling != nil {
 		links = searchList(links, n.NextSibling)
 	}
 
 	return links
 }
 
-func visit(links []string, n *html.Node) []string{
-	if n.Type == html.ElementNode && n.Data == "a"{
-		for _, a := range n.Attr{
-			if a.Key == "href"{
+func visit1(links []string, n *html.Node) []string {
+	if n.Type == html.ElementNode && n.Data == "a" {
+		for _, a := range n.Attr {
+			if a.Key == "href" {
 				links = append(links, a.Val)
 			}
 		}
 	}
 
-	if n.FirstChild != nil{
+	if n.FirstChild != nil {
 		links = searchList(links, n.FirstChild)
 	}
 
