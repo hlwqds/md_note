@@ -24,15 +24,24 @@ func crawl(url string) []string {
 
 func main() {
 	worklist := make(chan []string)
+	var n int
+	n++
 	go func() { worklist <- os.Args[1:] }()
 	seen := make(map[string]bool)
-	for list := range worklist {
-		for _, link := range list {
-			if !seen[link] {
-				seen[link] = true
-				go func(link string) {
-					worklist <- crawl(link)
-				}(link)
+	for n > 0 {
+		for list := range worklist {
+			n--
+			for _, link := range list {
+				if !seen[link] {
+					seen[link] = true
+					n++
+					go func(link string) {
+						worklist <- crawl(link)
+					}(link)
+				}
+			}
+			if n == 0 {
+				close(worklist)
 			}
 		}
 	}
