@@ -2,18 +2,22 @@ package main
 
 import (
 	"fmt"
+	"html"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
 
 const (
-	rootPath       = "."
-	ModuleSkyDrive = "/skyDrive"
+	rootPath              = "."
+	ModuleSkyDrive        = "/skyDrive"
+	SubModuleSkyDriveFile = "/file"
 )
 
 type condResult int
@@ -86,6 +90,47 @@ func writeNotModified(w http.ResponseWriter) {
 	}
 	w.WriteHeader(http.StatusNotModified)
 }
+
+func dirList(w http.ResponseWriter, r *http.Request, f os.File) {
+	var name string
+	var urlT url.URL
+	dirs, err := f.Readdir(-1)
+	if err != nil {
+		http.Error(w, "Error reading directory", http.StatusInternalServerError)
+		return
+	}
+	upath := r.URL.Path
+	sort.Slice(dirs, func(i, j int) bool { return dirs[i].ModTime().Before(dirs[j].ModTime()) })
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprintf(w, "<pre>\n")
+	if upath != ModuleSkyDrive+"/" {
+		name = upath + ".."
+		urlT = url.URL{Path: name}
+		fmt.Fprintf(w, "<a href=\"%s\">%s</a>\n", urlT.String(), "..")
+	}
+
+	for _, d := range dirs {
+		var sizeS string
+		if d.IsDir() {
+			sizeS = "-"
+			name = upath + d.Name() + "/"
+		} else {
+			sizeS = fmt.Sprintf("%dKB", (d.Size()+(1<<10+1))/(1<<10))
+			rPath := strings.TrimLeft(upath, ModuleSkyDrive)
+			name = ModuleSkyDrive + SubModuleSkyDriveFile + "/" + rPath + d.Name() + "/"
+		}
+		// name may contain '?' or '#', which must be escaped to remain
+		// part of the URL path, and not indicate the start of a query
+		// string or fragment.
+		urlT = url.URL{Path: name}
+		fmt.Fprintf(w, "<a href=\"%s\">%s</a>", urlT.String(), html.EscapeString(d.Name()))
+
+		fmt.Fprintf(w, "\t%2v-%3v-%4v\t%20v\n", d.ModTime().Day(), d.ModTime().Month(), d.ModTime().Year(), sizeS)
+	}
+	fmt.Fprintf(w, "</pre>\n")
+}
+
 func dirFormatServe(w http.ResponseWriter, r *http.Request) {
 	upath := r.URL.Path
 	if !strings.HasPrefix(upath, "/") {
@@ -94,7 +139,7 @@ func dirFormatServe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//根目录
-	name := rootPath + upath
+	name := rootPath + "/" + strings.TrimLeft(upath, ModuleSkyDrive)
 
 	file, err := os.Open(path.Clean(name))
 	//是否有此路径
@@ -127,22 +172,29 @@ func dirFormatServe(w http.ResponseWriter, r *http.Request) {
 		}
 		setLastModified(w, fileInfo.ModTime())
 
+		w.Header().Set("Last-Modified", fileInfo.ModTime().UTC().Format(http.TimeFormat))
+		dirList(w, r, *file)
 		return
 	}
+	msg, code := "404 page not found", http.StatusNotFound
+	http.Error(w, msg, code)
+	return
 }
 
 func fileHttpServeFunc(w http.ResponseWriter, r *http.Request) {
 	uPath := path.Clean(r.URL.Path)
-	_, fileName := filepath.Split(uPath)
-	fmt.Println(fileName)
+	pathT, fileName := filepath.Split(uPath)
+	dirPath := strings.TrimLeft(pathT, ModuleSkyDrive+SubModuleSkyDriveFile)
 
-	http.ServeFile(w, r, rootPath+"/"+fileName)
+	http.ServeFile(w, r, rootPath+"/"+dirPath+fileName)
+
+	return
 }
 
 func main() {
 	//文件夹处理
-	http.HandleFunc(ModuleSkyDrive, dirFormatServe)
+	http.HandleFunc(ModuleSkyDrive+"/", dirFormatServe)
 
-	http.HandleFunc(ModuleSkyDrive+"/file/", fileHttpServeFunc)
+	http.HandleFunc(ModuleSkyDrive+SubModuleSkyDriveFile+"/", fileHttpServeFunc)
 	log.Fatal(http.ListenAndServe("localhost:80", nil))
 }
