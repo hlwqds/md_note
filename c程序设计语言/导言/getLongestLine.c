@@ -29,7 +29,7 @@ void copy(char to[], char from[]){
     }
 }
 
-//getline函数，将一行读入s中并返回其长度
+//getLine函数，将一行读入s中并返回其长度
 int getLine(char line[], int maxline){
     int c, i;
     for(i = 0; i<maxline-1 && (c = getchar())!=EOF && c!='\n'; i++){
