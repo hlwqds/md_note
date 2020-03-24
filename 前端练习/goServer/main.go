@@ -2,23 +2,38 @@ package main
 
 import (
 	"fmt"
-	"html"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"sort"
 	"strings"
+	"text/template"
 	"time"
 )
 
 const (
-	rootPath              = "."
-	ModuleSkyDrive        = "/skyDrive"
-	SubModuleSkyDriveFile = "/file"
+	rootPath       = "."
+	ModuleSkyDrive = "/skyDrive"
 )
+
+type FileType int
+
+const (
+	File FileType = iota
+	Dir
+	Root
+)
+
+type FileInfo struct {
+	Name string
+	Path string
+	Time string
+	Size string
+	Type FileType
+	Even bool
+}
 
 type condResult int
 
@@ -92,7 +107,7 @@ func writeNotModified(w http.ResponseWriter) {
 }
 
 func dirList(w http.ResponseWriter, r *http.Request, f os.File) {
-	var name string
+	var name, path string
 	var urlT url.URL
 	dirs, err := f.Readdir(-1)
 	if err != nil {
@@ -103,32 +118,51 @@ func dirList(w http.ResponseWriter, r *http.Request, f os.File) {
 	sort.Slice(dirs, func(i, j int) bool { return dirs[i].ModTime().Before(dirs[j].ModTime()) })
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprintf(w, "<pre>\n")
+
+	list := make([]FileInfo, 0)
+	var element FileInfo
+
+	t, err := template.ParseFiles("app.html")
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	if upath != ModuleSkyDrive+"/" {
 		name = upath + ".."
 		urlT = url.URL{Path: name}
-		fmt.Fprintf(w, "<a href=\"%s\">%s</a>\n", urlT.String(), "..")
+		element.Name = ".."
+		element.Path = urlT.String()
+		element.Size = "-"
+		element.Time = ""
+		element.Type = Root
+		list = append(list, element)
 	}
 
-	for _, d := range dirs {
-		var sizeS string
-		if d.IsDir() {
-			sizeS = "-"
-			name = upath + d.Name() + "/"
+	for i, d := range dirs {
+		if i%2 == 0 {
+			element.Even = true
 		} else {
-			sizeS = fmt.Sprintf("%dKB", (d.Size()+(1<<10+1))/(1<<10))
-			rPath := strings.TrimLeft(upath, ModuleSkyDrive)
-			name = ModuleSkyDrive + SubModuleSkyDriveFile + "/" + rPath + d.Name() + "/"
+			element.Even = false
+		}
+		if d.IsDir() {
+			element.Size = "-"
+			element.Type = Dir
+			element.Name = d.Name() + "/"
+		} else {
+			element.Size = fmt.Sprintf("%dKB", (d.Size()+(1<<10+1))/(1<<10))
+			element.Type = File
+			element.Name = d.Name()
 		}
 		// name may contain '?' or '#', which must be escaped to remain
 		// part of the URL path, and not indicate the start of a query
 		// string or fragment.
-		urlT = url.URL{Path: name}
-		fmt.Fprintf(w, "<a href=\"%s\">%s</a>", urlT.String(), html.EscapeString(d.Name()))
-
-		fmt.Fprintf(w, "\t%2v-%3v-%4v\t%20v\n", d.ModTime().Day(), d.ModTime().Month(), d.ModTime().Year(), sizeS)
+		path = upath + d.Name() + "/"
+		urlT = url.URL{Path: path}
+		element.Path = fmt.Sprintf("%s", urlT.String())
+		element.Time = fmt.Sprintf("%2v-%3v-%4v", d.ModTime().Day(), d.ModTime().Month(), d.ModTime().Year())
+		list = append(list, element)
 	}
-	fmt.Fprintf(w, "</pre>\n")
+	t.Execute(w, list)
 }
 
 func dirFormatServe(w http.ResponseWriter, r *http.Request) {
@@ -175,26 +209,17 @@ func dirFormatServe(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Last-Modified", fileInfo.ModTime().UTC().Format(http.TimeFormat))
 		dirList(w, r, *file)
 		return
+	} else {
+		// serveContent will check modification time
+		http.ServeContent(w, r, fileInfo.Name(), fileInfo.ModTime(), file)
 	}
 	msg, code := "404 page not found", http.StatusNotFound
 	http.Error(w, msg, code)
 	return
 }
 
-func fileHttpServeFunc(w http.ResponseWriter, r *http.Request) {
-	uPath := path.Clean(r.URL.Path)
-	pathT, fileName := filepath.Split(uPath)
-	dirPath := strings.TrimLeft(pathT, ModuleSkyDrive+SubModuleSkyDriveFile)
-
-	http.ServeFile(w, r, rootPath+"/"+dirPath+fileName)
-
-	return
-}
-
 func main() {
-	//文件夹处理
 	http.HandleFunc(ModuleSkyDrive+"/", dirFormatServe)
 
-	http.HandleFunc(ModuleSkyDrive+SubModuleSkyDriveFile+"/", fileHttpServeFunc)
 	log.Fatal(http.ListenAndServe("localhost:80", nil))
 }

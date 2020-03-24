@@ -1,0 +1,38 @@
+fieldset {
+    width: 400px;
+}
+
+div {
+    width: 100%;
+    text-align: right;
+    padding: 10px 5px 10px 5px;
+}
+
+div>label {
+    width: 100%;
+
+}
+div>label>i{
+    color: #31c27c;
+
+}
+div>input {
+    color: black;
+    background-color: cornsilk;
+    width: 85%;
+    border: 1px solid #31c27c;
+    border-radius: 5px;
+    padding: 5px 5px 5px 5px;
+    background-repeat: no-repeat;
+    background-position: 8px 9px;
+    margin-bottom: 10px;
+}
+div>input:focus, div>input:focus {
+    background-color: #ffffff;
+    border: 1px solid #b1e1e4;
+    border-radius: 5px;
+}
+
+legend{
+    text-align: center;
+}

@@ -1,0 +1,42 @@
+h1 {
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    padding: 10px;
+    width: 100%;
+    margin: 0px;
+    background-color: #efefef;
+}
+
+#FileTable{
+    margin-top: 100px;
+    width: 600px;
+}
+
+
+td, th {
+    padding: 7px 10px 10px 10px;
+    width: 200px;
+}
+th {
+    border-bottom: 2px solid #111111;
+    border-top: 1px solid #999;
+    font-size: 90%;
+    text-align: left;
+}
+
+tr.even {
+    background-color: #efefef;
+}
+
+tr:hover {
+    background-color: #31c27c;
+}
+
+a:link {
+    text-decoration: none;
+}
+
+a:hover {
+    font-weight: bold;
+}

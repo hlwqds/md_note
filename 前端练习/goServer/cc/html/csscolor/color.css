@@ -1,0 +1,22 @@
+* {
+    padding: 10px;
+}
+
+body {
+    background-color: #c8c8c8;
+    background-color: hsl(0, 0%, 78%);
+}
+
+h1 {
+    background-color: darkcyan;
+    opacity: 0.5;
+}
+
+h2 {
+    background-color: #ee3e80;
+}
+
+p {
+    background-color: #ffffff;
+    background-color: hsla(0, 100%, 100%, 0.5);
+}
