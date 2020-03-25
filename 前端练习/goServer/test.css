@@ -25,6 +25,10 @@ th {
     text-align: left;
 }
 
+.fa {
+    margin: 0px 10px 0px 0px;
+}
+
 tr.even {
     background-color: #efefef;
 }

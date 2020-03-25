@@ -14,3 +14,6 @@ echo "/var/crash/coredump.%e.%p" > /proc/sys/kernel/core_pattern
 ## valgrind检查运行时问题
 
 https://blog.csdn.net/caijiwyj/article/details/99188644
+
+
+

@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>SkyDirver</title>
+    <title>SkyDrive</title>
     <link rel="stylesheet" href="/skyDrive/test.css" type="text/css">
+    <link rel="stylesheet" href="/skyDrive/font-awesome/css/font-awesome.min.css">
   </head>
   <body>
-    <h1>SkyDirver</h1>
+    <h1>SkyDrive</h1>
     <table id="FileTable">
       <tr>
         <th class="FileName">文件名</th>
@@ -19,7 +20,11 @@
           <tr>
         {{end}}
           <td>
-            <a href={{.Path}}>{{.Name}}</a>
+            {{if eq .Type 0}}
+              <a href={{.Path}}><i class="fa fa-file" aria-hidden="true"></i>{{.Name}}</a>
+            {{else}}
+              <a href={{.Path}}><i class="fa fa-folder" aria-hidden="true"></i>{{.Name}}</a>
+            {{end}}
           </td>
           <td>
             {{.Time}}
