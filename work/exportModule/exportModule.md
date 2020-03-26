@@ -495,7 +495,6 @@ graph TB
 	expandHandleGet["扩展字段获取值"]
 	commonHandleGet["普通字段获取值，从缓存中获取"]
 	writeIntoStruct["写入结构体中的对应字段"]
-	
     st --> skip1
     skip1 --> parseColumLoop
 	parseColumLoop --> ifParseFinished
@@ -520,13 +519,14 @@ graph TB
 	ifExpandType2 -- NO --> commonHandleGet
     expandHandleGet --> writeIntoStruct
     commonHandleGet --> writeIntoStruct
-	
+	writeIntoStruct --> iterationFinish3
 	iterationFinish3 -- YES  --> exportRow
 	exportRow --> iterationForColumnMark2
 	iterationForColumnMark2 --> iterationFinish2
 	iterationFinish2 -- NO --> writeColumnValue
 	writeColumnValue --> iterationFinish2
 	iterationFinish2 -- YES --> skip4
+
 	skip4 --> e
 ```
 
