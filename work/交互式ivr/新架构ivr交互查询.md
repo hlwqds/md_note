@@ -605,7 +605,7 @@ typedef enum
 	"class_type" : "1",		//
 	"ccNumber" : "",		//
 	"data" : 
-	"
+	
 	{
 	    "rspCode" : 0,
         "userQueryId":"id_0000002",
@@ -618,7 +618,7 @@ typedef enum
 	    "reason" : "test",
 	    "userdata" : "test"
 	}
-	"
+	
 }
 ```
 
@@ -836,7 +836,7 @@ json to cr
             }
         }
         "reason" : "test",
-        "userdata" : "test"
+        "userData" : "test"
     "
 }
 ```
@@ -862,7 +862,7 @@ json to cr
             "action" : 7
         }
         "reason" : "test",
-        "userdata" : "test"
+        "userData" : "test"
     "
 }
 ```
