@@ -13,7 +13,6 @@ func init() {
 }
 
 func binarySearch(num int, left, right int) int {
-	times++
 	b := (left + right) / 2
 	if num == list[b] {
 		return b
@@ -22,6 +21,7 @@ func binarySearch(num int, left, right int) int {
 	} else {
 		right = b - 1
 	}
+
 	return binarySearch(num, left, right)
 }
 
@@ -29,5 +29,4 @@ func main() {
 	var a int = 88
 	index := binarySearch(a, 0, 99)
 	fmt.Println(index)
-	fmt.Println(times)
 }
