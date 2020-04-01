@@ -27,7 +27,6 @@ def test_init_one_thousand_customer():
             cus_db_info["ccgeid"] = ccgeid
             cus_db_info["cm_name"] = timemark
             cus_db_info["cm_gender"] = 1
-            cus_db_info["job_name"] = timemark
             cus_db_info["cm_age"] = i
             cus_db_info["cm_addr"] = "taixing" + str(i)
             cus_db_info["cm_company"] = "yimi" + str(i)
