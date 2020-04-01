@@ -2,7 +2,7 @@ from my_lib.my_mysql import *
 import time
 
 def test_create_new_customer(db, info_dict={}):
-    return insert_info_into_mysql(db, info_dict, "emicall_cc_man.customer")
+    return insert_info_into_mysql(db, info_dict, "emicall_cc_man.customers")
 
 def test_create_new_customertels(db, info_dict={}):
     return insert_info_into_mysql(db, info_dict, "emicall_cc_man.customer_telephones")
