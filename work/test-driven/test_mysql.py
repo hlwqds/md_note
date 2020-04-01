@@ -29,8 +29,8 @@ def test_init_one_thousand_customer():
             cus_db_info["cm_gender"] = 1
             cus_db_info["job_name"] = timemark
             cus_db_info["cm_age"] = i
-            cus_db_info["cm_addr"] = "泰兴" + str(i)
-            cus_db_info["cm_company"] = "易米" + str(i)
+            cus_db_info["cm_addr"] = "taixing" + str(i)
+            cus_db_info["cm_company"] = "yimi" + str(i)
             cus_db_info["cm_email"] = str(i) + ".qq.com"
             cus_db_info["cm_web_site"] = str(i) + ".kaisa.com"
             cus_db_info["cm_remark"] = str(i) + "remark"
