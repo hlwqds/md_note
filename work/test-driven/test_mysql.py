@@ -15,7 +15,7 @@ def test_init_one_thousand_customer():
     ccgeid = 234
     seid = 10
     telNum = 5
-    timemark = time.time()
+    timemark = str(int(time.time()))
     db = connect("127.0.0.1","root","123456",charset="utf8")
     try:
         cus_db_info = {}
