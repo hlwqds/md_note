@@ -49,7 +49,7 @@ def test_init_one_thousand_customer():
                 cusothertels_db_info["type"] = 1
                 test_create_new_customer_othertels(db, cusothertels_db_info)
             for j in range(0, telNum):
-                cusothertels_db_info["telephone"] = str(2) + timemark + j
+                cusothertels_db_info["telephone"] = str(2) + timemark + str(j)
                 cusothertels_db_info["type"] = 2
                 test_create_new_customer_othertels(db, cusothertels_db_info)
 
