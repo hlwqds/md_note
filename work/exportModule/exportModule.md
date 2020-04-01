@@ -20,8 +20,6 @@ PSServiceWorkProcessCRMCustomer.c
 
 PSServiceWorkProcessCRMCustomer.h
 
-
-
 ##### 1.2.1.2 主模块类型应以web的展示列表为基准，一个展示列表一个主模块类型
 
 例：
@@ -538,15 +536,35 @@ graph TB
 
 ###  2.1 客户信息导出
 
+和cid有关，优化只能通过联表查询
+
 #### 2.1.1 缓存设计
 
-事实上客户导出的信息都是每个客户特有的，单个导出任务中不会出现重复的内容。本次只是针对单个任务的优化，客户信息导出不会涉及缓存。
+暂时使用hashtable
+
+和预览式外呼任务详情导出不同，每个客户信息相互独立，可能导致导出客户过程中产生巨大的缓存数据量。这里只需要缓存功能，只在导出的一个循环中存在。
+
+但是句柄可以存在于整个导出过程中。
+
+客户号码的缓存自不必说，和下面的预览式外呼任务详情缓存一样。
+
+下面是自定义字段的缓存流程图，自定义字段有可能横跨三张表，所以对这类字段需要单独进行优化
+
+```mermaid
+graph TB
+    st("开始")
+	e("退出")
+```
 
 #### 2.1.2 补充消息批量获取
 
 ### 2.2 预览式外呼任务详情导出
 
 #### 2.2.1 缓存设计
+
+暂时使用hashtable
+
+和客户导出不同，这里缓存的信息不是相互独立的，hashtable有去重和缓存的功能，将在整个导出过程中存在。
 
 #### 2.2.2 补充消息批量获取
 
@@ -562,4 +580,101 @@ graph TB
 
 根据主表中获取的gid生成gid列表，批量获取并存入数据结构对应的字段中
 
-##### 
+### 2.3 预览式外呼任务导出
+
+没有关联信息需要单独获取，不需要优化
+
+### 2.4 预览式外呼话后处理结果导出
+
+没有关联信息需要单独获取，不需要优化
+
+### 2.5 预览式外呼坐席统计导出
+
+没有关联信息需要单独获取，不需要优化
+
+### 2.6 预览式外呼技能组统计导出
+
+没有关联信息需要单独获取，不需要优化
+
+### 2.7 预览式外呼结果导出
+
+没有关联信息需要单独获取，不需要优化
+
+### 2.8 预览式外呼批次导出导出
+
+没有关联信息需要单独获取，不需要优化
+
+# 3 uthash的封装
+
+以seatname的封装为例：
+
+UTHashLib.c
+
+```c
+#include "UTHashLib.h"
+
+/*init seatname hash table and return handler*/
+SNHashHandler *InitSeatNameUTHashTable(){
+    SNHashHandler *handler = NULL;
+    handler = EmicMalloc(sizeof(*handler));
+    *handler = NULL;
+    return handler;
+}
+
+/*add element to hashtable*/
+void AddSeatNameInfoIntoUTHashTable(SNHashHandler *handler, char *uid, char *name){
+    SNHashElement s = NULL;
+    s = EmicMalloc(sizeof(*s));
+    Emic_strncpy(s->id, uid, sizeof(s->id));
+    Emic_strncpy(s->displayname, name, sizeof(s->displayname));
+    HASH_ADD_STR(*handler, id, s);
+    
+}
+
+
+/*get element info from hashtable*/
+char *GetSeatNameInfoFromUTHashTable(SNHashHandler *handler, char *uid){
+    SNHashElement s = NULL;
+    HASH_FIND_STR(*handler, uid, s);
+    if(s != NULL){
+        return s->displayname;
+    }else{
+        return NULL;
+    }
+} 
+
+/*delete elements and free handler*/
+void DeleteAllFromSeatUTHashTable(SNHashHandler *handler){
+    SNHashElement current_user, tmp;
+    
+    HASH_ITER(hh, *handler, current_user, tmp) {
+      HASH_DEL(*handler,current_user);
+      FREE_IF_NOT_NULL(current_user);
+    }
+
+    FREE_IF_NOT_NULL(handler);
+}
+```
+
+UTHashLib.h
+
+```c
+#include "uthash.h"
+#define SEATNAME_UTHASH_ID_MAX_LEN 64
+
+typedef struct _SeatUTHash_ *SNHashHandler;
+typedef struct _SeatUTHash_ *SNHashElement;
+struct _SeatUTHash_{
+    char                        id[SEATNAME_UTHASH_ID_MAX_LEN];
+    char                        displayname[DB_CCTALK_EP_USER_DISPLAYNAME_MAX_LEN];
+    UT_hash_handle              hh;
+};
+SNHashHandler *InitSeatNameUTHashTable();
+void AddSeatNameInfoIntoUTHashTable(SNHashHandler *obj, char *uid, char *name);
+char *GetSeatNameInfoFromUTHashTable(SNHashHandler *handler, char *uid);
+void DeleteAllFromSeatUTHashTable(SNHashHandler *obj);
+```
+
+# 4 ids和cond的合并
+
+过去将根据id导出和根据条件导出分开写，这样是效率比较低的，并且一旦有地方修改很有可能只改ids或者cond而忘记另一个。现将ids和cond合并，走cond逻辑即将ids封装成数据库的筛选语句。
