@@ -15,7 +15,7 @@ def test_init_one_thousand_customer():
     ccgeid = 234
     seid = 10
     telNum = 5
-    timemark = int(time.time())
+    timemark = time.time()
     db = connect("127.0.0.1","root","123456",charset="utf8")
     try:
         cus_db_info = {}
@@ -39,17 +39,17 @@ def test_init_one_thousand_customer():
             custels_db_info["seid"] = seid
             custels_db_info["ccgeid"] = ccgeid
             for j in range(0, telNum):
-                custels_db_info["telephone"] = timemark + j
+                custels_db_info["telephone"] = timemark + str(j)
                 test_create_new_customertels(db, custels_db_info)
             cusothertels_db_info["cid"] = cid
             cusothertels_db_info["seid"] = seid
             cusothertels_db_info["ccgeid"] = ccgeid
             for j in range(0, telNum):
-                cusothertels_db_info["telephone"] = timemark + j
+                cusothertels_db_info["telephone"] = str(1) + timemark + str(j)
                 cusothertels_db_info["type"] = 1
                 test_create_new_customer_othertels(db, cusothertels_db_info)
             for j in range(0, telNum):
-                cusothertels_db_info["telephone"] = timemark + j
+                cusothertels_db_info["telephone"] = str(2) + timemark + j
                 cusothertels_db_info["type"] = 2
                 test_create_new_customer_othertels(db, cusothertels_db_info)
 
