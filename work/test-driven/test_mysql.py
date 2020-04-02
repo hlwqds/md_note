@@ -22,7 +22,7 @@ def test_init_one_thousand_customer():
         custels_db_info = {}
         cusothertels_db_info = {}
 
-        for i in range(0, 1000):
+        for i in range(0, 20000):
             cus_db_info["seid"] = seid
             cus_db_info["ccgeid"] = ccgeid
             cus_db_info["cm_name"] = timemark
