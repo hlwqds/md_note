@@ -69,7 +69,7 @@ def test_init_one_thousand_customer_with_self_defined_field():
         custels_db_info = {}
         cusothertels_db_info = {}
 
-        for i in range(0, 20000):
+        for i in range(0, 10):
             cus_db_info["seid"] = seid
             cus_db_info["ccgeid"] = ccgeid
             cus_db_info["cm_name"] = timemark
@@ -109,16 +109,13 @@ def test_init_one_thousand_customer_with_self_defined_field():
                 self_defined_value["field_id"] = field["id"]
                 if field["type"] == 0:
                     self_defined_value["field_value"] = "onevalue" + str(cid) + timemark
+                    test_create_new_defined_value(db, self_defined_value)
                 elif field["type"] == 4:
                     self_defined_value["field_value"] = ""
                     first = True
                     for optionId in field["self_defined_option"]:
-                        if first:
-                            first = False
-                            self_defined_value["field_value"] += str(optionId)
-                        else:
-                            self_defined_value["field_value"] += ";" + str(optionId)
-                test_create_new_defined_value(db, self_defined_value)
+                        self_defined_value["field_value"] = str(optionId)
+                        test_create_new_defined_value(db, self_defined_value)
 
         del cus_db_info
         del custels_db_info
