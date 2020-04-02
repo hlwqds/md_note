@@ -39,6 +39,8 @@ def test_init_one_thousand_customer_with_self_defined_field():
             field_id = test_create_new_defined_field(db, self_defined_field)
             self_defined_field["id"] = field_id
             self_defined_list.append(self_defined_field)
+            del self_defined_field
+
         
         for i in range(0,3):
             self_defined_field = {}
@@ -55,14 +57,15 @@ def test_init_one_thousand_customer_with_self_defined_field():
             self_defined_option["ccgeid"] = ccgeid
             self_defined_option["field_id"] = field_id
             for j in range(0, 3):
-                self_defined_option["field_option"] = "selection" + str(i) + timemark
+                self_defined_option["field_option"] = "selection" + str(j) + timemark
                 option_id = test_create_new_defined_option(db, self_defined_option)
                 self_defined_optionid_list.append(option_id)
             self_defined_field["self_defined_option"] = self_defined_optionid_list
             self_defined_list.append(self_defined_field)
             del self_defined_option
             del self_defined_optionid_list
-        
+            del self_defined_field
+
             
         cus_db_info = {}
         custels_db_info = {}
@@ -121,7 +124,6 @@ def test_init_one_thousand_customer_with_self_defined_field():
         del cus_db_info
         del custels_db_info
         del cusothertels_db_info
-        del self_defined_field
         del self_defined_list
 
     except Exception as e:
