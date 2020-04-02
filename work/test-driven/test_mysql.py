@@ -102,7 +102,7 @@ def test_init_one_thousand_customer_with_self_defined_field():
                 cusothertels_db_info["type"] = 2
                 test_create_new_customer_othertels(db, cusothertels_db_info)
 
-            for field in range(self_defined_list):
+            for field in self_defined_list:
                 self_defined_value = {}
                 self_defined_value["seid"] = seid
                 self_defined_value["ccgeid"] = ccgeid
