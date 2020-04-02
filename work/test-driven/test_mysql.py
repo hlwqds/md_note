@@ -107,10 +107,10 @@ def test_init_one_thousand_customer_with_self_defined_field():
                 self_defined_value["ccgeid"] = ccgeid
                 self_defined_value["cid"] = cid
                 self_defined_value["field_id"] = field["id"]
-                if field["type"] == 0:
+                if field["field_type"] == 0:
                     self_defined_value["field_value"] = "onevalue" + str(cid) + timemark
                     test_create_new_defined_value(db, self_defined_value)
-                elif field["type"] == 4:
+                elif field["field_type"] == 4:
                     self_defined_value["field_value"] = ""
                     first = True
                     for optionId in field["self_defined_option"]:
