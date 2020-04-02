@@ -151,7 +151,7 @@ def test_batchcall_recall():
 
 def test_customer_export():
     ret = 0
-    ccgeid = 45
+    ccgeid = 234
     seid = 10
     moduleType = 11
     action = 1

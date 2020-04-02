@@ -554,6 +554,42 @@ graph TB
 graph TB
     st("开始")
 	e("退出")
+	iterateCusList["迭代客户列表，每次获取一批客户"]
+	insertIntoCidLIst["将此次的客户列表的id写入CidList"]
+	iterateDefineValueIdList["迭代需导出的自定义字段列表,确定每次循环的字段id"]
+	getSelfdefinedValueByCidlistAndFid["根据字段id和CidList获取自定义字段值列表"]
+	iterateDefineValueList["迭代自定义字段值列表"]
+	insertIntoSelfDefinedValueHash["将这批数据插入到SelfDefinedValueHash表中"]
+	ifSelectionValue>"是单选或者多选?"]
+	ifDefineValueIdListIterateFinished>"自定义字段值迭代结束?"]
+	insertIntoSelfOptionValueList["将该define_value.field_value插入待处理optionList"]
+	ifSelfOptionValueListOverLimit["optionList超过了限制大小?"]
+	handleWithSelfOptionValueList["处理optionList，查找数据，清理缓存，清空列表"]
+	insertIntoSelfOptionValueList2["将该define_value.field_value插入待处理optionList"]
+	handleWithSelfOptionValueList2["处理optionList，查找数据，清理缓存，清空列表"]
+	ifIterateDefineValueIdListFinished>"迭代需导出的自定义字段列表结束?"]
+	ifIterateCusListFinished>"迭代客户列表结束?"]
+	st ==> iterateCusList
+	iterateCusList ==> insertIntoCidLIst
+    insertIntoCidLIst ==> iterateDefineValueIdList
+    iterateDefineValueIdList ==> getSelfdefinedValueByCidlistAndFid
+    getSelfdefinedValueByCidlistAndFid ==> iterateDefineValueList
+    iterateDefineValueList ==> insertIntoSelfDefinedValueHash
+    insertIntoSelfDefinedValueHash ==> ifSelectionValue
+    ifSelectionValue == no ==>ifDefineValueIdListIterateFinished
+    ifSelectionValue == yes ==> insertIntoSelfOptionValueList
+    insertIntoSelfOptionValueList ==> ifSelfOptionValueListOverLimit
+    ifSelfOptionValueListOverLimit == yes ==> handleWithSelfOptionValueList
+    handleWithSelfOptionValueList ==> insertIntoSelfOptionValueList2
+    ifSelfOptionValueListOverLimit == no ==> ifDefineValueIdListIterateFinished
+    insertIntoSelfOptionValueList2 ==> ifDefineValueIdListIterateFinished
+    ifDefineValueIdListIterateFinished == yes ==> handleWithSelfOptionValueList2
+    ifDefineValueIdListIterateFinished == no ==> iterateDefineValueList
+    handleWithSelfOptionValueList2 ==> ifIterateDefineValueIdListFinished
+    ifIterateDefineValueIdListFinished == no ==> iterateDefineValueIdList
+    ifIterateDefineValueIdListFinished == yes ==> ifIterateCusListFinished
+    ifIterateCusListFinished == no ==> iterateCusList
+    ifIterateCusListFinished == yes ==> e
 ```
 
 #### 2.1.2 补充消息批量获取
