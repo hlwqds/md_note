@@ -28,8 +28,6 @@ def test_init_one_thousand_customer_with_self_defined_field():
     db = connect("127.0.0.1","root","123456",charset="utf8")
     try:
         self_defined_list = []
-        
-
         for i in range(0,3):
             self_defined_field = {}
             self_defined_field["seid"] = seid
@@ -102,6 +100,7 @@ def test_init_one_thousand_customer_with_self_defined_field():
                 cusothertels_db_info["type"] = 2
                 test_create_new_customer_othertels(db, cusothertels_db_info)
 
+            print(self_defined_list)
             for field in self_defined_list:
                 self_defined_value = {}
                 self_defined_value["seid"] = seid
