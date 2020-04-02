@@ -29,11 +29,11 @@ def test_init_one_thousand_customer_with_self_defined_field():
     try:
         self_defined_list = []
         
-        self_defined_field = {}
-        
-        self_defined_field["seid"] = seid
-        self_defined_field["ccgeid"] = ccgeid
+
         for i in range(0,3):
+            self_defined_field = {}
+            self_defined_field["seid"] = seid
+            self_defined_field["ccgeid"] = ccgeid
             self_defined_field["field_name"] = "one" + str(i) + timemark
             self_defined_field["field_type"] = 0
             field_id = test_create_new_defined_field(db, self_defined_field)
@@ -41,6 +41,9 @@ def test_init_one_thousand_customer_with_self_defined_field():
             self_defined_list.append(self_defined_field)
         
         for i in range(0,3):
+            self_defined_field = {}
+            self_defined_field["seid"] = seid
+            self_defined_field["ccgeid"] = ccgeid
             self_defined_field["field_name"] = "selection" + str(i) + timemark
             self_defined_field["field_type"] = 4
             field_id = test_create_new_defined_field(db, self_defined_field)
