@@ -548,7 +548,29 @@ graph TB
 
 客户号码的缓存自不必说，和下面的预览式外呼任务详情缓存一样。
 
-下面是自定义字段的缓存流程图，自定义字段有可能横跨三张表，所以对这类字段需要单独进行优化
+新增缓存的申请和释放回调
+
+```c
+static PSS_EXPORT_HEADER *PSServiceExportCRMControlHeaderInit(PSS_EXPORT_HEADER *header)
+{
+    header->callback.ex_col_text_func = &PSServiceHeaderExpandFuncCRM;
+    header->callback.expand_type = PSSExportTypeCRMCustomerDefined;
+
+    header->control_header.header_list = CRMCustomerFields;
+    header->callback.count_func = &PSServiceExportCRMCountTaskTotalNum;
+    header->callback.parse_func = &CRMCustomerExportParseConditionAndColumn;
+    //header->callback.ids_func = &PSServiceExportCRMCustomerByIds;
+    header->callback.init_cache_func = &PSServiceExportCRMInitCache;
+    header->callback.free_cache_func = &PSServiceExportCRMFreeCache;
+    header->callback.condition_func = &PSServiceExportCRMByCondition;
+    header->callback.free_func = &PSServiceExportCRMFreeConditionContent;
+    return header;
+}
+```
+
+
+
+下面是自定义字段的缓存流程图，自定义字段有可能横跨三张表，所以对这类字段需要单独进行优化。
 
 ```mermaid
 graph TB
@@ -649,68 +671,107 @@ UTHashLib.c
 ```c
 #include "UTHashLib.h"
 
-/*init seatname hash table and return handler*/
-SNHashHandler *InitSeatNameUTHashTable(){
-    SNHashHandler *handler = NULL;
+/*init common hash table and return handler*/
+CommonHashHandler *InitCommonUTHashTable(){
+    CommonHashHandler *handler = NULL;
     handler = EmicMalloc(sizeof(*handler));
     *handler = NULL;
     return handler;
 }
 
 /*add element to hashtable*/
-void AddSeatNameInfoIntoUTHashTable(SNHashHandler *handler, char *uid, char *name){
-    SNHashElement s = NULL;
+void AddCommonInfoIntoUTHashTable(CommonHashHandler *handler, char *key, char *valueStr){
+    if(handler == NULL || key == NULL || valueStr == NULL){
+        EmicCmLog(LOG_LEVEL_ERROR, __FUNCTION__, "AddCRMTelInfoIntoUTHashTable argument error");
+        return;
+    }
+    CommonHashElement s = NULL;
     s = EmicMalloc(sizeof(*s));
-    Emic_strncpy(s->id, uid, sizeof(s->id));
-    Emic_strncpy(s->displayname, name, sizeof(s->displayname));
-    HASH_ADD_STR(*handler, id, s);
+    memset(s, 0, sizeof(*s));
+    Emic_strncpy(s->key, key, sizeof(s->key));
+    int valueSize = strlen(valueStr) + 1;
+    while(TRUE){
+        if(s->valueSize == 0){
+            s->valueSize = INIT_COMMON_UTHASH_VALUE_SIZE * sizeof(*(s->valueStr));
+            
+            s->valueStr = EmicMalloc(s->valueSize);
+        }else if(s->valueSize < valueSize){
+            s->valueSize *= 2;
+            s->valueStr = EmicRealloc(s->valueStr, s->valueSize);
+        }else{
+            break;
+        }
+    }
+    Emic_strncpy(s->valueStr, valueStr, s->valueSize);
+    HASH_ADD_STR(*handler, key, s);
     
 }
 
 
 /*get element info from hashtable*/
-char *GetSeatNameInfoFromUTHashTable(SNHashHandler *handler, char *uid){
-    SNHashElement s = NULL;
-    HASH_FIND_STR(*handler, uid, s);
+const char *GetCommonInfoFromUTHashTable(CommonHashHandler *handler, char *key){
+    if(handler == NULL || key == NULL){
+        EmicCmLog(LOG_LEVEL_ERROR, __FUNCTION__, "GetCRMTelInfoFromUTHashTable argument error");
+        return NULL;
+    }
+    
+    CommonHashElement s = NULL;
+    HASH_FIND_STR(*handler, key, s);
     if(s != NULL){
-        return s->displayname;
+        return s->valueStr;
     }else{
         return NULL;
     }
 } 
 
-/*delete elements and free handler*/
-void DeleteAllFromSeatUTHashTable(SNHashHandler *handler){
-    SNHashElement current_user, tmp;
-    
-    HASH_ITER(hh, *handler, current_user, tmp) {
-      HASH_DEL(*handler,current_user);
-      FREE_IF_NOT_NULL(current_user);
+/*delete elements*/
+void DeleteAllFromCommonUTHashTable(CommonHashHandler *handler){
+    if(handler == NULL){
+        EmicCmLog(LOG_LEVEL_ERROR, __FUNCTION__, "DeleteAllFromCRMTelUTHashTable argument error");
+        return;
     }
+    CommonHashElement current, tmp;
+    
+    HASH_ITER(hh, *handler, current, tmp) {
+      HASH_DEL(*handler, current);
+      FREE_IF_NOT_NULL(current->valueStr);
+      FREE_IF_NOT_NULL(current);
+    }
+}
 
+void RemoveCommonUTHashTable(CommonHashHandler *handler){
+    if(handler != NULL){
+        DeleteAllFromCommonUTHashTable(handler);
+    }
     FREE_IF_NOT_NULL(handler);
 }
+
 ```
 
 UTHashLib.h
 
 ```c
 #include "uthash.h"
-#define SEATNAME_UTHASH_ID_MAX_LEN 64
 
-typedef struct _SeatUTHash_ *SNHashHandler;
-typedef struct _SeatUTHash_ *SNHashElement;
-struct _SeatUTHash_{
-    char                        id[SEATNAME_UTHASH_ID_MAX_LEN];
-    char                        displayname[DB_CCTALK_EP_USER_DISPLAYNAME_MAX_LEN];
+#define COMMON_UTHASH_ID_MAX_LEN 64
+#define INIT_COMMON_UTHASH_VALUE_SIZE 64
+typedef struct _CommonUTHash_ *CommonHashHandler;
+typedef struct _CommonUTHash_ *CommonHashElement;
+struct _CommonUTHash_{
+    char                        key[COMMON_UTHASH_ID_MAX_LEN];
+    char                        *valueStr;
+    int                         valueSize;
     UT_hash_handle              hh;
 };
-SNHashHandler *InitSeatNameUTHashTable();
-void AddSeatNameInfoIntoUTHashTable(SNHashHandler *obj, char *uid, char *name);
-char *GetSeatNameInfoFromUTHashTable(SNHashHandler *handler, char *uid);
-void DeleteAllFromSeatUTHashTable(SNHashHandler *obj);
+
+CommonHashHandler *InitCommonUTHashTable();
+void AddCommonInfoIntoUTHashTable(CommonHashHandler *obj, char *key, char *valueStr);
+const char *GetCommonInfoFromUTHashTable(CommonHashHandler *handler, char *key);
+void DeleteAllFromCommonUTHashTable(CommonHashHandler *obj);
+void RemoveCommonUTHashTable(CommonHashHandler *handler);
+
 ```
 
 # 4 ids和cond的合并
 
-过去将根据id导出和根据条件导出分开写，这样是效率比较低的，并且一旦有地方修改很有可能只改ids或者cond而忘记另一个。现将ids和cond合并，走cond逻辑即将ids封装成数据库的筛选语句。
+过去将根据id导出和根据条件导出分开写，这样开发效率是比较低的，并且一旦有地方修改很有可能只改ids或者cond而忘记另一个。现将ids和cond合并，走cond逻辑即将ids封装成数据库的筛选语句。
