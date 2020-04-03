@@ -173,10 +173,10 @@ def test_customer_export():
         task_db_info["file_path"] = csv_name
 
         task_db_condition = {}
-        task_db_condition["column"] = "cm_name,cm_tels,home_tels,enterprise_tels,cm_gender,cm_email,cm_addr,cm_company,cm_web_site,cm_detail,modify_time,defineField_37,defineField_38,defineField_39"
+        task_db_condition["column"] = "cm_name,cm_tels,home_tels,enterprise_tels,cm_gender,cm_email,cm_addr,cm_company,cm_web_site,cm_detail,modify_time,defineField_49,defineField_50,defineField_51"
         task_db_condition["fixed_column_mask"] = 1
         task_db_condition["hide_customer_number"] = "xx****x"
-        task_db_condition["ids"] = ""
+        task_db_condition["ids"] = "42144"
         task_db_info["condition"] = task_db_condition
         async_task_id = test_batchcall_new_asynctask(db,task_db_info)
         del task_db_condition
