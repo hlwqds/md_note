@@ -2,6 +2,8 @@
     "files.associations": {
         "time.h": "c",
         "stdio.h": "c",
-        "types.h": "c"
+        "types.h": "c",
+        "error.h": "c",
+        "fcntl.h": "c"
     }
 }
