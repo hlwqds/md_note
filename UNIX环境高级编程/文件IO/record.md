@@ -67,5 +67,125 @@ fd参数将open和openat区分开，共有三种可能：
 
 ## 3 函数creat
 
+也可以调用creat函数创建一个新文件
+
+```c
+creat("test.md", 7);
+//相当于
+open("test.md", O_WRONLY | O_CREAT | O_TRUNC);
+//如果要创建一个临时文件，并且要先写文件然后又读该文件，我们可以使用以下方法
+open("test.md", O_RDWR | O_CREAT | O_TRUNC);
+```
+
+## 4 函数close
+
+可调用close关闭一个打开的文件
+
+```c
+#include <fcntl.h>
+#include <unistd.h>
+int file = open("test.md", O_RDONLY | O_CREAT);
+close(file);
+```
+
+关闭一个文件时还会释放该进程加在该文件上的所有记录锁。
+
+当一个进程终止时，内核自动关闭它所有的打开文件
+
+## 5 函数lseek
+
+每个打开文件都有一个与之相关联的"当前文件偏移量"。它通常是一个非负整数，用以度量从文件开始计算的字节数。通常，读写操作都从当前文件偏移量处开始，并使偏移量增加所读写的字节数。按系统默认的情况，当打开一个文件时，除非制定O_APPEND选项，否则该偏移量被设置为0。
+
+```c
+#include <unistd.h>
+extern __off_t lseek (int __fd, __off_t __offset, int __whence) __THROW;
+```
+
+对参数offset的解释与参数whence的值相关。
+
+若whence是SEEK_SET，则将该文件的偏移量设置为距文件开始处offset个字节。
+
+若whence是SEEK_CUR，则将该文件的偏移量设置为其当前值加offset，offset可为正或负。
+
+若whence是SEEK_END，则将该文件的偏移量设置为文件长度加offset，offset可为正或负。
+
+若lseek执行成功，则返回新的文件偏移量。
+
+```c
+#include <apue.h>
+#include <unistd.h>
+#include <fcntl.h>
+int main(){
+    int file = open("test.md", O_RDONLY);
+    off_t currpos = lseek(file, 10, SEEK_SET);
+    currpos = lseek(file, 20, SEEK_CUR);
+    currpos = lseek(file, 20, SEEK_END);
+
+    printf("currpos : %ld\n", currpos);
+}
+```
+
+这种方法也可以用来确认所涉及的文件是否能设置偏移量。如果文件描述符指向的是一个管道、FIFO或网络套接字，则lseek返回-1，并将errno设置为ESPIPE
+
+```c
+#include <apue.h>
+#include <fcntl.h>
+
+int main(){
+    if(lseek(STDIN_FILENO, 0, SEEK_CUR) == -1){
+        printf("can't seek\n");
+    }else{
+        printf("seek OK\n");
+    }
+
+    exit(0);
+}
+```
+
+```sh
+./a.out  < /etc/passwd
+cat < /etc/passwd | ./a.out
+```
+
+通常，文件的当前偏移量应当是一个非负整数，但是，某些设备也可能允许负的偏移量。但对于普通文件，其偏移量必须是非负值。所以在比较lseek的返回值时，我们最好将其与-1比较，而不是判断它是否小于0。
+
+文件偏移量可以大于文件的当前长度，在这种情况下，对文件的下一次写将会加长该文件，并在文件中构成一个空洞，这一点是允许的。位于文件中但没有写过的字节都被读为0。空洞数据不占用磁盘空间
+
+```c
+#include <apue.h>
+#include <fcntl.h>
+#include <error.h>
+
+char buf1[] = "abcdefghijk";
+char buf2[] = "ABCDEFGHIJK";
+
+int main(){
+    int fd;
+    if((fd = creat("file.hole", FILE_MODE)) < 0){
+        err_sys("creat error");
+    }
+
+    if(write(fd, buf1, sizeof(buf1)) != sizeof(buf1)){
+        err_sys("write error");
+    }
+
+    if(lseek(fd, 20, SEEK_CUR) == -1){
+        err_sys("lseek error");
+    }
+
+    if(write(fd, buf2, sizeof(buf2)) != sizeof(buf2)){
+        err_sys("write error");
+    }
+    exit(0);
+}
+```
+
+```sh
+od -c file.hole
+```
 
 
+
+## 专业名词
+
+current file offset 当前文件偏移量
