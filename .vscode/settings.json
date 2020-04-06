@@ -5,6 +5,7 @@
         "types.h": "c",
         "error.h": "c",
         "fcntl.h": "c",
-        "apue.h": "c"
+        "apue.h": "c",
+        "unistd.h": "c"
     }
 }
