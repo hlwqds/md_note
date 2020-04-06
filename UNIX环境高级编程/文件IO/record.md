@@ -43,6 +43,29 @@ open("record.md", O_WRONLY | O_APPEND);	//每次写时都追加到文件的尾�
 open("record.md", O_WRONLY | O_CLOEXEC);	//把FD_CLOEXEC常量设置为文件描述符标志
 open("test.md", O_WRONLY | O_CREAT);		//若此文件不存在则创建他。使用此选项时，open函数应该同时说明第三个参数mode，用mode制定该新文件的访问权限位
 open("test.md", O_WRONLY | O_DIRECTORY);	//如果文件不是目录类型，则出错
-
+open("atomic.md", O_RDONLY | O_CREAT | O_EXCL);	//O_EXCL如果同时指定了O_CREAT，而文件已经存在，则出错。用此可以测试一个文件是否存在，如果不存在，则创建此文件，这使测试和创建是一个原子操作
+open("record.md", O_WRONLY | O_NOCTTY);		//如果引用的是终端设备，则不将该设备分配作为此进程的控制终端
+open("record.md", O_WRONLY | O_NOFOLLOW);	//如果引用的是一个符号链接，则出错
+open("record.md", O_WRONLY | O_NONBLOCK);	//如果引用的是一个FIFO、一个块特殊文件或一个字符特殊文件，则此选项为文件的本次打开操作和后续的I/O操作设置非阻塞模式
+open("record.md", O_WRONLY | O_SYNC);		//使每次write等待物理I/O完成，包括由该write操作引起的文件属性更新所需的I/O
+open("record.md", O_WRONLY | O_TRUNC);		//如果此文件存在，而且为只写或读写成功打开，则将其长度截为0
+open("record.md", O_WRONLY | O_DSYNC);		//使每次write要等待物理I/O操作完成，但是如果该写操作不影响读取刚写入的数据，则不需要等待文件属性被更新
+open("record.md", O_WRONLY | O_RSYNC);		//使每一个以文件描述符作为参数进行的read操作等待，直至所有对文件同一部分挂起的写操作完成。
 ```
+
+由open和openat函数返回的文件描述符一定是最小的未用描述符数值。这一点被某些应用程序用来在标准输入，标准输出或标准错误上打开新的文件。例如可以先关闭标准错误，再打开另一个文件，该文件就能在文件描述符2上打开。
+
+
+
+fd参数将open和openat区分开，共有三种可能：
+
+1、path参数指定的是绝对路径，这种情况下，fd参数被忽略，openat就相当于open
+
+2、path指定的是相对路径，fd参数指定了相对路径名再文件系统中的起始位置。fd参数是通过打开相对路径名所在的目录获取的。
+
+3、path参数指定了相对路径名，fd参数具有特殊值AT_FDCWD。这种情况下，路径名在当前工作目录中获取，openat和open函数再操作上类似。
+
+## 3 函数creat
+
+
 

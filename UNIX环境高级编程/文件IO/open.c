@@ -24,6 +24,31 @@ int main(){
     file = open("test.md", O_RDONLY | O_DIRECTORY);
     printf("file: %d\n", file);
 
-    file = open("test.md", O_RDONLY | O_DIRECTORY);
+    file = open("atomic.md", O_RDONLY | O_CREAT | O_EXCL);
+    printf("file: %d\n", file);
+    err_ret("atomic");
+
+    file = open("record.md", O_WRONLY | O_NOCTTY);
+    printf("file: %d\n", file);
+
+    file = open("record.md", O_WRONLY | O_NOFOLLOW);
+    printf("file: %d\n", file);
+
+    file = open("record.md", O_WRONLY | O_NONBLOCK);
+    printf("file: %d\n", file);
+
+    file = open("record.md", O_WRONLY | O_SYNC);
+    printf("file: %d\n", file);
+
+    file = open("record.md", O_WRONLY | O_TRUNC);
+    printf("file: %d\n", file);
+
+    file = open("record.md", O_WRONLY | O_DSYNC);
+    printf("file: %d\n", file);
+
+    file = open("record.md", O_WRONLY | O_RSYNC);
+    printf("file: %d\n", file);
+
+    file = openat(AT_FDCWD, "record.md", O_WRONLY | O_RSYNC);
     printf("file: %d\n", file);
 }
