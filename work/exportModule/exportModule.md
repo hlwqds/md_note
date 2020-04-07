@@ -28,7 +28,7 @@ PSServiceWorkProcessCRMCustomer.h
 
 
 
-##### 1.2.1.3 主模块代码除对应的子模块的处理分支完全一致
+##### 1.2.1.3 主模块代码除对应的子模块的处理分支外完全一致
 
 ```c
 int PSServiceWorkProcessPreviewCall(PSSInternalData *intData)
@@ -100,6 +100,160 @@ int PSServiceWorkProcessPreviewCall(PSSInternalData *intData)
 #### 1.2.1 子模块
 
 在开发过程中，发现导出子模块的操作具有相似性，于是希望创建一个导出类将重复的操作进行封装，只对外暴露特殊化的属性以供不同的子模块操作实例化。
+
+下面是类执行流程：
+
+```c
+int PSSExportCommonFuncStart(
+    EMICALL_DB_CM_ASYNC_TASK *pTaskData,
+    PSS_EXPORT_HEADER *header
+)
+{
+    char file_path[256] = {0};
+    PSSCoreData *pCoreData = PSSCoreDataGet();
+    PSSExportFileData *fileData = NULL;
+    int ret = 0;
+    
+    PSSCoreData *coreData = PSSCoreDataGet();
+    do {
+        ret = PSServiceMysqlInit2(&(header->control_header.db_conn), coreData->bootcfg);
+        if (ret != DB_RET_NO_ERROR)
+        {
+           sleep(1);
+           continue;
+        }
+        break;
+    } while (1);
+
+    header->control_header.seid = pTaskData->seid;
+    header->control_header.ccgeid = pTaskData->ccgeid;
+    header->control_header.async_task_id = pTaskData->id;
+    
+    EmicCmLog(LOG_LEVEL_INFO, __FUNCTION__, "start parse_func");
+    /* 解析需要导出的参数信息 */
+    if(header->callback.parse_func != NULL)
+    {
+        ret = header->callback.parse_func(pTaskData->condition, &(header->control_header));
+        if(ret != 0)
+        {
+            EmicCmLog(LOG_LEVEL_ERROR, __FUNCTION__, "parse_func failed, condition:%s",
+                pTaskData->condition);
+            goto _exit;
+        }
+    }
+    else
+    {
+        EmicCmLog(LOG_LEVEL_ERROR, __FUNCTION__, "theres no parse_func");
+        goto _exit;
+    }
+    
+    /* 初始化导出文本 */
+    
+    snprintf(file_path, sizeof(file_path), "%s%s", EXPORT_NAS_PATH, pTaskData->file_path);
+    
+    PSServiceFileProcessExportTaskInit(&fileData, file_path);
+    header->control_header.fileData = fileData;
+    /* 插入文件头 */
+    PSServiceWorkProcess_WriteFileHeader(header);
+    
+    EmicCmLog(LOG_LEVEL_INFO, __FUNCTION__, "start count_func");
+    //更新本次任务的导出数量的估计值estimated_count,要区分两种情况ids和condition
+    if(header->callback.count_func != NULL)
+    {
+        header->callback.count_func(&(header->control_header));
+        if(ret != 0)
+        {
+            EmicCmLog(LOG_LEVEL_ERROR, __FUNCTION__, "count_func failed, condition:%s",
+                pTaskData->condition);
+            goto _exit;
+        }
+    }
+    else
+    {
+        EmicCmLog(LOG_LEVEL_ERROR, __FUNCTION__, "theres no count_func");
+        goto _exit;
+    }
+
+    DBInitCmAsyncTaskCounts(header->control_header.db_conn, "emicall_cc_man", header->control_header.seid, header->control_header.ccgeid,
+        header->control_header.async_task_id, header->control_header.estimated_count, time(NULL));
+
+    //需要在整个导出过程中缓存数据
+    if(header->callback.init_cache_func != NULL){
+        header->callback.init_cache_func(&(header->control_header));
+        if(ret != 0)
+        {
+            EmicCmLog(LOG_LEVEL_ERROR, __FUNCTION__, "init_cache_func failed");
+            goto _exit;
+        }
+    }
+    /*
+    if(header->control_header.ids != NULL && header->control_header.ids[0] != '\0')
+    {
+        // 导出指定id的数据
+        ret = PSServiceExportCommonfuncByIds(header);
+        if(ret)
+        {
+            EmicCmLog(LOG_LEVEL_ERROR, __FUNCTION__, "PSServiceExportPreviewCallByIds failed, ret:%d", ret);
+            goto _exit;
+        }
+    }
+    else
+    {
+    
+    */
+        /* 根据查询条件查找需要导出的数据 */
+        ret = PSServiceExportCommonfuncBySelectedCondition(header);
+        if(ret)
+        {
+            EmicCmLog(LOG_LEVEL_ERROR, __FUNCTION__, "PSServiceExportPreviewCallBySelectedCondition failed, ret:%d", ret);
+            goto _exit;
+        }
+    /*
+    }
+    */
+    //释放除了start期间申请的空间
+    EmicCmLog(LOG_LEVEL_INFO, __FUNCTION__, "start free_func");
+    if(header->callback.free_func != NULL)
+    {
+        ret = header->callback.free_func(&(header->control_header));
+        if(ret)
+        {
+            EmicCmLog(LOG_LEVEL_ERROR, __FUNCTION__, "free_func failed, ret:%d", ret);
+            goto _exit;
+        }
+    }
+    else
+    {
+        EmicCmLog(LOG_LEVEL_ERROR, __FUNCTION__, "theres no free_func");
+        goto _exit;
+    }
+
+    if(header->callback.init_cache_func != NULL){
+        if(header->callback.free_cache_func != NULL){
+            ret = header->callback.free_cache_func(&(header->control_header));
+            if(ret)
+            {
+                EmicCmLog(LOG_LEVEL_ERROR, __FUNCTION__, "free_cache_func failed, ret:%d", ret);
+                goto _exit;
+            }
+        }else{
+            EmicCmLog(LOG_LEVEL_ERROR, __FUNCTION__, "theres no free_cache_func");
+            goto _exit;
+        }
+    }
+_exit:
+    PSServFileProExportTaskReleaseForMoudle(fileData, &(header->control_header));
+    
+    if (header->control_header.db_conn != NULL)
+    {
+        PSServiceMysqlClose2(header->control_header.db_conn);
+        header->control_header.db_conn = NULL;
+    }
+    return ret;
+}
+```
+
+
 
 ##### 1.2.1.1 子模块属性
 
@@ -205,7 +359,7 @@ static PSS_EXPORT_HEADER *PSServiceExportCRMControlHeaderInit(PSS_EXPORT_HEADER 
 
 ##### 1.2.1.3 子模块处理流程图
 
-###### 1.2.1.3.1 主流程
+###### 1.2.1.3.1 通用处理流程
 
 （数据获取和导出流程(ids和cond基本一致，考虑以后会将两者合并提升ids的效率）
 
@@ -244,7 +398,7 @@ graph TB
 
 
 
-###### 1.2.1.3.2 导出处理流程
+###### 1.2.1.3.2 具体导出处理流程实例
 
 (不同的导出处理大相径庭，这里只是列举典型的导出CRM客户的处理流程。这意味着在导出处理中我们无法进行代码复用，而是需要特殊化处理，拷贝代码然后修改特殊化的字段)
 
@@ -662,9 +816,9 @@ graph TB
 
 没有关联信息需要单独获取，不需要优化
 
-# 3 uthash的封装
+## 3 uthash的封装
 
-以seatname的封装为例：
+以commonHash的封装为例：
 
 UTHashLib.c
 
@@ -772,6 +926,77 @@ void RemoveCommonUTHashTable(CommonHashHandler *handler);
 
 ```
 
-# 4 ids和cond的合并
+## 4 ids和cond的合并
 
 过去将根据id导出和根据条件导出分开写，这样开发效率是比较低的，并且一旦有地方修改很有可能只改ids或者cond而忘记另一个。现将ids和cond合并，走cond逻辑即将ids封装成数据库的筛选语句。
+
+## 5 导出相关顺序
+
+### 5.1 列顺序
+
+导出哪些列，列顺序如何由cm指定。具体字段存在数据库导出任务表中的condition字段中。
+
+具体处理逻辑已在[1.2.1.3.3](#1.2.1.3.3 列顺序)中说明
+
+### 5.2 行顺序
+
+导出数据按照什么方式排列需要在具体流程中与cm进行协商，下面是具体协商内容：
+
+#### 5.2.1 客户导出
+
+##### 5.2.1.1 客户导出
+
+ order by id desc
+
+#### 5.2.2 预览式外呼任务导出
+
+##### 5.2.2.1 预览式外呼任务导出
+
+ order by id desc
+
+##### 5.2.2.2 预览式外呼任务详情导出
+
+ order by preview_task_customers.id desc
+
+##### 5.2.2.3 预览式外呼任务批次导出
+
+ order by id desc
+
+##### 5.2.2.4 话后处理原因导出
+
+ order by result_id
+
+##### 5.2.2.5 通话结束原因导出
+
+  order by id
+
+##### 5.2.2.6 技能组通话统计导出
+
+ order by gid
+
+##### 5.2.2.7 坐席通话统计导出
+
+ order by uid
+
+## 6 导出字段规范
+
+### 6.1 浮点数限制
+
+导出模块也对应修改，和cm协商。对于页面展示的浮点数都采用杨总建议的方案。至于位数，百分比作为浮点数保留4位，乘100后保留两位，平均数作为浮点数保留2位。
+pss新增封装函数
+
+```c
+//为输入的浮点数保留小数点后n位有效数字，作为tmp输出
+static inline float reverseDecimalNBits(float a, int n){
+  int b = pow(10, n);
+  float tmp = 0.0;
+  int m = 0;
+  m = (a * b) / 1;
+  tmp = m * 1.0 / b;
+  return tmp;
+}
+
+//应用
+exportline_info->process = reverseDecimalNBits((float)(task->customer_called + task->customer_aborted) / \
+   (float)task->total_customers, 4);
+```
