@@ -315,6 +315,145 @@ dup2和fcntl有一些不同的errno
 
 通常，当内核需要重用缓冲区来存放其他磁盘块数据时，它会把所有延迟写数据块写入磁盘。为了保证磁盘上实际文件系统与缓冲区中内容的一致性，UNIX系统提供了sync、fsync和fdatasync函数。
 
+```c
+#include <unistd.h>
+extern void sync (void) __THROW;
+extern int fsync (int __fd);
+extern int fdatasync (int __fildes);
+```
+
+sync只是将所有修改的块缓冲区排入写队列，然后就返回，它并不等待实际写磁盘操作结束
+
+通常，称为update的系统守护进程周期性调用sync函数。这就保证了定期冲洗(flush)内核的块缓冲区。
+
+fsync函数值对有文件描述符fd指定的一个文件起作用，并且等待写磁盘操作结束后才返回。fsync可用于数据库这样的应用程序。
+
+fdatasync函数类似于fsync，但是它会在文件数据部分写入后立即返回，而不会等待文件属性更新。
+
+## 13 函数fcntl
+
+fcntl函数可以改变已经打开的文件的属性
+
+fcntl函数有以下5种功能。
+
+```c
+#include <fcntl.h>
+extern int fcntl (int __fd, int __cmd, ...);
+
+/* Values for the second argument to `fcntl'.  */
+#define F_DUPFD		0	/* dup复制一个已有的文件描述符 */
+#define F_GETFD		1	/* get close_on_exec 获取文件描述符标志*/
+#define F_SETFD		2	/* set/clear close_on_exec 设置文件描述符标志*/
+#define F_GETFL		3	/* get file->f_flags 获取文件描述符状态标志*/
+#define F_SETFL		4	/* set file->f_flags 设置文件描述符状态标志*/
+#ifndef F_GETLK
+#define F_GETLK		5	//获取记录锁
+#define F_SETLK		6	//设置记录锁
+#define F_SETLKW	7	//设置记录锁
+#endif
+#ifndef F_SETOWN
+#define F_SETOWN	8	/* for sockets. 设置异步I/O所有权*/
+#define F_GETOWN	9	/* for sockets. 获取异步I/O所有权*/
+#endif
+#ifndef F_SETSIG
+#define F_SETSIG	10	/* for sockets. */
+#define F_GETSIG	11	/* for sockets. */
+```
+
+获取文件描述符状态标志位
+
+```c
+#include <apue.h>
+#include <error.h>
+#include <fcntl.h>
+
+int main(int argc, char **argv){
+    int val;
+    if(argc != 2){
+        err_quit("argc error");
+    }
+
+    if((val = fcntl(atoi(argv[1]), F_GETFL, 0)) < 0){
+        err_sys("fcntl error");
+    }
+
+    switch(val & O_ACCMODE){
+        case O_RDONLY:
+            printf("read only\n");
+            break;
+        case O_WRONLY:
+            printf("write only\n");
+            break;
+        case O_RDWR:
+            printf("read write only\n");
+            break;
+        default:
+            err_dump("unknown access mode\n");
+    }
+
+    if(val & O_APPEND){
+        printf("append\n");
+    }
+
+    if(val & O_NONBLOCK){
+        printf("nonblock\n");
+    }
+
+    if(val & O_SYNC){
+        printf("sync\n");
+    }
+
+#if !defined(_POSIX_C_SOURCE) && defined(O_FSYNC) && (O_FSYNC != O_SYNC)
+    if(val & O_FSYNC){
+        printf("fsync\n");
+    }
+#endif
+
+    exit(0);
+}
+```
+
+文件描述符标志位
+
+在修改文件描述符标志或者文件状态标志时必须要谨慎，先要获取现在的标志位，然后按照期望修改它，最后设置新的标志位。不能只是执行F_SETFD或F_SETFL命令，这样会关闭以前设置的标志位。
+
+```c
+#include <apue.h>
+#include <fcntl.h>
+
+void set_fl(int fd, int flags){
+    int val;
+
+    if((val = fcntl(fd, F_GETFL, 0)) < 0){
+        err_sys("fcntl error");
+    }
+
+    val |= flags;
+    if(fcntl(fd, F_SETFL, val) < 0){
+        err_sys("fcntl error");
+    }
+}
+
+void clr_fl(int fd, int flags){
+    int val;
+
+    if((val = fcntl(fd, F_GETFL, 0)) < 0){
+        err_sys("fcntl error");
+    }
+
+    val &= ~flags;
+    if(fcntl(fd, F_SETFL, val) < 0){
+        err_sys("fcntl error");
+    }
+}
+```
+
+## 14 函数ioctl
+
+ioctl函数一直是I/O操作的杂物箱。不能用本章中其它函数表示的I/O操作通常都能使用ioctl表示
+
+## 15 /dev/fd
+
 
 
 ## 专业名词
