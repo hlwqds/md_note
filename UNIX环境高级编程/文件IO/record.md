@@ -243,8 +243,77 @@ extern ssize_t write (int __fd, const void *__buf, size_t __n) __wur;
 考虑一个进程，它要将数据追加到一个文件尾端。早起的UNIX不支持open的O_APPEND选项，所以程序被编写成下列的形式。
 
 ```c
+#include <apue.h>
+#include <error.h>
+#include <fcntl.h>
 
+int main(){
+    int fd = 0;
+    char buf[] = "awdawd";
+    fd = open("test.md", O_WRONLY);
+
+    if (lseek(fd, 0, SEEK_END) == -1){
+        err_sys("lseek error");
+    }
+
+    if(write(fd, buf, sizeof(buf)) != sizeof(buf)){
+        err_sys("write error");
+    }
+}
 ```
+
+对单个进程来说，这段程序能够正常工作，但如果有多个进程同时使用这个方法将数据追加到同一文件，则会产生问题
+
+### 10.2 函数pread和pwrite
+
+```c
+#include <unistd.h>
+__fortify_function __wur ssize_t pread (int __fd, void *__buf, size_t __nbytes, __off_t __offset)
+extern ssize_t pwrite (int __fd, const void *__buf, size_t __n,
+		       __off_t __offset) __wur;
+```
+
+1 **用于多线程磁盘文件操作**
+
+2 APUE中的那段话所谓的“原子性”从语义上讲与O_APPEND模式的write相同。
+
+3 用这两个调用模拟O_APPEND解决竞争是不可能的，必然导致新的竞争——你怎么知道文件现在的文件长度？
+
+4 处理多线程磁盘文件操作时，不用这两个调用很麻烦。同情“很少用”的人。
+
+原子性是指多步操作要么全部执行完毕，要么不会执行
+
+### 10.3 创建一个文件
+
+对open函数的O_CREAT和O_EXCL选项进行说明时，我们已见到另一个和原子操作有关的例子。当同时指定这两个选项，而文件又存在时，open将会失败。
+
+## 11 函数dup和dup2
+
+这两个函数都可以用来复制一个现有的文件描述符
+
+```c
+#include <unistd.h>
+extern int dup (int __fd) __THROW __wur;
+extern int dup2 (int __fd, int __fd2) __THROW;
+```
+
+对于dup返回的新文件描述符一定是当前可用文件描述符中的最小数值。对于dup2可以用fd2参数指定新描述符的值。如果fd2已经打开，则先将其关闭。如果fd等于fd2，则dup2返回fd2而不关闭它。
+
+这些函数返回的新文件描述符与参数fd共享同一个文件表项
+
+dup(fd)等效于fcntl(fd, F_DUPFD, 0);
+
+dup2(fd, fd1)相当于close(fd1);fcntl(fd, F_DUPFD, fd2);但是又有区别：
+
+dup2是一个原子操作，而close和fcntl包括两个函数调用。有可能在close和fcntl函数之间调用了信号处理函数，修改了文件描述符。如果多线程修改一个文件描述符也会出现问题。
+
+dup2和fcntl有一些不同的errno
+
+## 12 函数sync、fsync和fdatasync
+
+传统的unix系统实现在内核中设有缓冲区高速缓存或页高速缓存，大多数磁盘I/O都通过缓冲区进行。当我们向文件写入数据时，内核通常先将数据复制到缓冲区中，然后排入队列，晚些时候再写入磁盘。这种方式被称为延迟写。
+
+通常，当内核需要重用缓冲区来存放其他磁盘块数据时，它会把所有延迟写数据块写入磁盘。为了保证磁盘上实际文件系统与缓冲区中内容的一致性，UNIX系统提供了sync、fsync和fdatasync函数。
 
 
 
@@ -253,3 +322,5 @@ extern ssize_t write (int __fd, const void *__buf, size_t __n) __wur;
 current file offset 当前文件偏移量
 
 read ahead 预读
+
+delayed write	延迟写
