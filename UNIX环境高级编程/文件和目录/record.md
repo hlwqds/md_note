@@ -441,7 +441,7 @@ extern int truncate (const char *__file, __off_t __length)
 
 ## 13 文件系统
 
-- 每个i节点中都有一个链接计数，其值是指向该i节点的目录项数。只有当链接计数减少至0时，才可以删除该文件。这就是为什么“接触对一个文件的链接”操作并不总意味着释放该文件占用的磁盘块的原因。这也是为什么删除一个目录项的函数被称为unlink而不是delete的原因。在stat结构中，连接计数包含在st_nlink成员中。这种链接称为硬链接。LINK_MAX指定了一个文件链接数的最大值。硬链接多个最常见的是目录..和.
+- 每个i节点中都有一个链接计数，其值是指向该i节点的目录项数。只有当链接计数减少至0时，才可以删除该文件。这就是为什么“解除对一个文件的链接”操作并不总意味着释放该文件占用的磁盘块的原因。这也是为什么删除一个目录项的函数被称为unlink而不是delete的原因。在stat结构中，连接计数包含在st_nlink成员中。这种链接称为硬链接。LINK_MAX指定了一个文件链接数的最大值。硬链接多个最常见的是目录..和.
 - 另外一种链接类型称为符号链接。符号链接文件的实际内容包含了该符号链接所指向的文件的名字。
 - i节点中包含了文件有关的所有信息：文件类型、文件访问权限、文件长度和指向文件数据块的指针。stat结构中的大多数数据取自i节点。只有两项重要数据存放在目录项中：文件名和文件i节点编号。
 - 因为目录项中的i节点编号指向同一文件系统中的相应i节点，一个目录项不能指向另一个文件系统的i节点。这就是为什么ln命令不能跨越文件系统的原因
@@ -497,6 +497,277 @@ unlink这种特性经常被程序用来确保即使是在程序崩溃时，它�
 
 也可以使用remove删除文件，对于文件效果和unlink相同，对于目录，和rmdir相同。
 
+## 15 函数rename和renameat
+
+文件或者目录可以通过rename或者renameat函数进行重命名。
+
+```c
+#include <stdio.h>
+extern int rename (const char *__old, const char *__new) __THROW;
+extern int renameat (int __oldfd, const char *__old, int __newfd,
+		     const char *__new) __THROW;
+```
+
+根据源文件是文件、目录还是符号链接，有几种情况需要加以说明。我们也必须说明new存在时会发生什么。
+
+1.    如果old指的是文件而不是目录，那么为该文件或符号链接重命名。在这种情况下，如果new已经存在，则它不能引用一个目录。如果new已存在，则将该目录项删除，然后将old重命名为new。对包含new的目录，调用进程必须有写权限
+2. 如果old指向的是目录，那么为该目录重命名。如果new已存在，则它必须是一个空目录。这种情况下，则先将new删除，然后将old重命名为new。另外，当为一个目录重命名时，new不能包含old作为其路径前缀。
+3. 如果old或new引用符号链接，则处理的是符号链接本身，而不是它们指向的文件。
+4. 不能对.和..重命名。
+5. 如果old和new相同，不做任何处理
+
+## 16 符号链接
+
+符号链接是对一个文件的间接指针，它与上节所述的硬链接不同，硬链接直接指向文件的i节点。引入符号链接的原因是为了避开硬链接的一些限制。
+
+- 硬链接通常要求文件和链接存在于同一个文件系统中
+- 只有超级用户才能创建指向目录的硬链接（事实上测试下来linux普通用户也可以）
+
+符号链接一般用于将一个文件或整个目录结构移到系统的另一个位置。
+
+当使用以名字引用文件的函数时，应当了解该函数是够处理符号链接。也就是说该文件是否跟随符号到达它所链接的文件如果该函数具有处理符号链接的能力，则其路径名参数引用符号链接指向的文件。
+
+对符号链接的处理是由返回文件描述符的函数进行的。
+
+| 函数     | 不跟随符号链接 | 跟随符号链接 |
+| -------- | :------------: | :----------: |
+| access   |                |      -       |
+| chdir    |                |      -       |
+| chmod    |                |      -       |
+| creat    |                |      -       |
+| exec     |                |      -       |
+| lchown   |       -        |              |
+| link     |                |      -       |
+| lstat    |       -        |              |
+| open     |                |      -       |
+| opendir  |                |      -       |
+| pathconf |                |      -       |
+| readlink |       -        |              |
+| remove   |       -        |              |
+| rename   |       -        |              |
+| stat     |                |      -       |
+| truncate |                |      -       |
+| unlink   |       -        |              |
+
+途中一个例外是，同时用O_CREAT和O_EXECL两者调用open函数。如果路径名引用符号链接，open将出错。
+
+实例：
+
+使用符号链接可能在文件系统中引入循环。大多数查找路径名的函数在这种情况发生时都会出错返回，errno值为ELOOP。
+
+```sh
+mkdir foo
+touch foo/a
+ln -s ../foo foo/testdir
+ls -l foo
+```
+
+这样一个循环是很容易消除的。因为unlink并不跟随符号链接，所以可以unlink文件foo/testdir。但是如果创建了一个构成这种循环的硬链接，那么就很难消除它。这就是为什么link函数不允许构造指向目录的硬链接的原因（除非进程具有超级用户权限）。
+
+## 17 创建和读取符号链接
+
+可以使用symlink或symlinkat函数创建一个符号链接
+
+```c
+#include <unistd.h>
+extern int symlink (const char *__from, const char *__to)
+     __THROW __nonnull ((1, 2)) __wur;
+extern int symlinkat (const char *__from, int __tofd,
+		      const char *__to) __THROW __nonnull ((1, 3)) __wur;
+```
+
+函数创建了一个指向from的新目录项to。创建此符号链接时，并不要求from已经存在。两者也不必在同一文件系统。
+
+因为open跟随符号链接，所以需要有一种方法打开该链接本身，并读取该连接中的名字。readlink和readinkat函数提供了这个功能。
+
+```c
+#include <unistd.h>
+extern ssize_t readlink (const char *__restrict __path,
+			 char *__restrict __buf, size_t __len)
+     __THROW __nonnull ((1, 2)) __wur;
+extern int symlinkat (const char *__from, int __tofd,
+		      const char *__to) __THROW __nonnull ((1, 3)) __wur;
+```
+
+两个函数组合了open、read和close的所有操作。如果函数执行成功，则返回读入的字节数。bug中返回的符号链接的内容不以null字符终止。
+
+## 18 文件的时间
+
+对每个文件维护3个时间字段
+
+| 字段    | 说明                    | 例子         | ls选项 |
+| ------- | ----------------------- | ------------ | ------ |
+| st_atim | 文件数据的最后访问时间  | read         | -u     |
+| st_mtim | 文件数据的最后修改时间  | write        | 默认   |
+| st_ctim | i节点状态的最后修改时间 | chmod、chown | -c     |
+
+注意，修改时间和状态修改时间之间的区别。修改时间是指的文件数据内容被修改的最后时间。状态更改时间是该文件的i节点最后一次被修改的时间。比如更改文件的访问权限、更改用户ID、更改链接数等。
+
+注意，系统并不维护一个节点的最后一次访问时间，所以access和stat并不会修改这3个时间中的任一个。
+
+系统管理员常常使用访问时间来删除在一定时间范围内没有被访问过的文件。find命令常常被用来进行这种筛选操作。
+
+## 19 函数futimens、utimensat和utimes
+
+一个文件的访问和修改时间可以用以下几个函数更改。futimens和utimensat函数可以指定纳秒级精度的时间戳。用到的数据结构是与stat函数族相同的timespec结构。
+
+```c
+#include <sys/stat>
+extern int futimens (int __fd, const struct timespec __times[2]) __THROW;
+extern int utimensat (int __fd, const char *__path,
+		      const struct timespec __times[2],
+		      int __flags)
+     __THROW __nonnull ((2));
+```
+
+times数组第一个元素包含访问时间，第二个包含修改时间。
+
+时间戳可以按下列4种方式之一进行指定：
+
+1. 如果times参数是一个空指针，则访问时间和修改时间两者都设置为当前时间。
+2. 如果times参数指向两个timespec结构的数组，任一数组元素的tv_nsec字段的值为UTIME_NOW，相应的时间戳就设置为当前时间，忽略相应的tv_sec字段
+3. 如果times参数指向两个timespec结构的数组，任一数组元素的tv_nsec字段的值为UTIME_OMIT，相应的时间戳保持不变，忽略相应的tv_sec字段
+4. 如果times参数指向两个timespec结构的数组，任一数组元素的tv_nsec字段的值既不是UTIME_OMIT也不是UTIME_NOW，将文件对应的时间戳修改为对应的tv_sec和tv_nsec值
+
+```c
+extern int utimes (const char *__file, const struct timeval __tvp[2])
+     __THROW __nonnull ((1));
+```
+
+utmes函数对路径名进行操作，time参数是指向   包含两个时间戳元素数组的指针，两个时间戳使用秒和微秒表示的
+
+
+
+实例：
+
+```c
+#include <apue.h>
+#include <error.h>
+#include <fcntl.h>
+
+int main(int argc, char **argv){
+    int i, fd;
+    struct stat statbuf;
+    struct timespec times[2];
+
+    for(i = 1; i < argc; i++){
+        if(stat(argv[i], &statbuf) < 0){
+            err_sys("stat error");
+        }
+        if((fd = open(argv[i], O_RDWR | O_TRUNC)) < 0){
+            err_ret("open error");
+            continue;
+        }
+
+        times[0] = statbuf.st_atim;
+        times[1] = statbuf.st_mtim;
+        if(futimens(fd, times) < 0){
+            err_ret("futimens error");
+        }
+        close(fd);
+    }
+    exit(0);
+}
+```
+
+## 20 函数mkdir、mkdirat和rmdir
+
+用mkdir和mkdirat创建目录，rmdir删除目录
+
+```c
+#include <sys/stat.h>
+extern int mkdir (const char *__path, __mode_t __mode)
+     __THROW __nonnull ((1));
+extern int mkdirat (int __fd, const char *__path, __mode_t __mode)
+     __THROW __nonnull ((2));
+```
+
+这两个函数创建一个新的空目录。其中..和.目录项是自动创建的。所指定的文件访问权限由进程的文件模式创建屏蔽字修改。
+
+常见的错误是指定文件相同的mode而没有指定执行权限。
+
+rmdir可以删除一个空目录，空目录是只含有.和..这两项的目录
+
+```c
+#include <unistd.h>
+extern int rmdir (const char *__path) __THROW __nonnull ((1));
+```
+
+## 21 读目录
+
+对某个目录具有访问权限的任一用户都可以读取该目录，但是为了防止文件系统产生混乱，只有内核才能写目录。
+
+```c
+#include <dirent.h>
+extern DIR *opendir (const char *__name) __nonnull ((1));
+extern DIR *fdopendir (int __fd);
+//若成功，返回指针，若失败，返回NULL
+
+extern struct dirent *readdir (DIR *__dirp) __nonnull ((1));
+//若成功，返回指针，若失败或者到达目录尾部，返回NULL
+
+extern void rewinddir (DIR *__dirp) __THROW __nonnull ((1));
+extern int closedir (DIR *__dirp) __nonnull ((1));
+//若成功，返回0；若失败，返回-1
+//DIR结构是一个内部结构，其作用类似于FILE结构
+extern long int telldir (DIR *__dirp) __THROW __nonnull ((1));
+//返回值，与dp相关联的目录中的当前位置
+
+extern void seekdir (DIR *__dirp, long int __pos) __THROW __nonnull ((1));
+
+struct dirent
+  {
+#ifndef __USE_FILE_OFFSET64
+    __ino_t d_ino;				//i-node number
+    __off_t d_off;
+#else
+    __ino64_t d_ino;
+    __off64_t d_off;
+#endif
+    unsigned short int d_reclen;
+    unsigned char d_type;
+    char d_name[256];		/* We must not include limits.h! */
+  };
+```
+
+##  22 函数chdir、fchdir和getcwd
+
+每个进程都有一个当前工作目录，此目录是搜索所有相对路径名的起点。当前工作目录是进程的一个属性。
+
+进程调用chdir或fchdir函数可以更改当前工作目录。
+
+```c
+#include <apue.h>
+#include <error.h>
+int main(){
+    if (chdir("/tmp") < 0){
+        err_sys("chdir failed");
+    }
+    printf("chdir to /tmp succeeded\n");
+    exit(0);
+}
+```
+
+内核必须维护当前工作目录的信息，但是他只保存指向该目录v节点的指针等目录本身的信息，并不保存该目录的完整路径名。
+
+我们可以通过调用函数getcwd实现此功能。它从当前工作目录(.)开始，用..找到上一级目录，然后读取其目录项，直到该目录项的i节点和工作目录i节点的编号相同，逐层上移直到遇到根目录。
+
+```c
+#include <apue.h>
+#include <error.h>
+int main(){
+    if (chdir("/tmp") < 0){
+        err_sys("chdir failed");
+    }
+    printf("chdir to /tmp succeeded\n");
+    exit(0);
+}
+```
+
+## 23 设备特殊文件
+
+
+
 ## 特有名词
 
 普通文件		regular file
@@ -512,3 +783,5 @@ unlink这种特性经常被程序用来确保即使是在程序崩溃时，它�
 文件结束		end-of-file
 
 符号链接		symbolic link
+
+标准			standard

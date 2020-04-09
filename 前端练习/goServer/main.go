@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	rootPath       = "."
+	rootPath       = "../.."
 	ModuleSkyDrive = "/skyDrive"
 )
 
