@@ -8,6 +8,7 @@
         "apue.h": "c",
         "unistd.h": "c",
         "termios.h": "c",
-        "dirent.h": "c"
+        "dirent.h": "c",
+        "wchar.h": "c"
     }
 }
