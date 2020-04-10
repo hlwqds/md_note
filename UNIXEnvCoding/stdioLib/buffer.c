@@ -1,5 +1,4 @@
-#include <apue.h>
-#include <error.h>
+#include <stdio.h>
 
 int main(){
     FILE *fp = NULL;
@@ -7,6 +6,8 @@ int main(){
     setbuf(fp, NULL);
 
     setvbuf(fp, buf, _IOFBF, sizeof(buf));
+    buf[3] = 'h';
+    printf("huanglin\n");
 
     fflush(fp);
 }
