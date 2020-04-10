@@ -20,7 +20,9 @@ extern int fwide (__FILE *__fp, int __mode) __THROW;
 
 - 如果mode参数值为负，fwide将试图使指定的流是字节定向的。
 - 如果mode参数值为正，fwide将试图使指定的流是宽定向的。
-- 如果mode的参数值为0，fwide将不试图设置流的定向，但返回标识该流定向的值。
+- https://code.visualstudio.com/docs/cpp/config-mingw
+
+- 
 
 注意，fwide并不改变已定向流的定向。而且fwide无出错返回，所以我们唯一可靠的是，在调用fwide前先清除errno，返回时检查errno的值。
 
@@ -144,9 +146,41 @@ extern int getchar (void);
 
 这三个函数在返回下一个字符时，将其unsigned char 类型转换为int类型。这样就可以用-1表示错误了，而且可以表示所有的字符。当函数执行错误或者到达文件末尾时，会返回EOF=-1。
 
+注意不管是出错还是到达文件尾端，这3个函数都返回同样的值。为了区分这两种不同的情况必须调用ferror和feof
+
+```c
+#include <stdio.h>
+int __cdecl ferror(FILE *_File);
+int __cdecl feof(FILE *_File);
+
+void __cdecl clearerr(FILE *_File);
+```
+
+在大多数实现中，为每个流在FILE对象中维护了两个标志：
+
+- 出错标志
+- 文件结束标志
+
+调用cleaerr可以清楚这两个标志。
+
+从流中读取数据以后，还可以调用ungetc将字符再压回流中。
+
+```c
+#include <stdio.h>
+int __cdecl ungetc(int _Ch,FILE *_File);
+```
+
+每次只支持压入一个字符，且不能将EOF压入。
+
+当正在读取一个输入流，并进行某种形式的切词或记号切分操作时，会经常用到回送字符操作。有时需要先看一下下一个字符，以决定如何处理当前字符。然后就需要方便地将刚查看的字符回送，以便下一次调用getc时返回该字符。
+
 ### 6.2 输出函数
 
+ 对应于上面所述的每个输入函数都有一个输出函数。
 
+```c
+
+```
 
 ## 专有名词
 
