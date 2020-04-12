@@ -179,8 +179,169 @@ int __cdecl ungetc(int _Ch,FILE *_File);
  对应于上面所述的每个输入函数都有一个输出函数。
 
 ```c
+#include <stdio.h>
+/* Write a character to STREAM.
 
+   These functions are possible cancellation points and therefore not
+   marked with __THROW.
+
+   These functions is a possible cancellation point and therefore not
+   marked with __THROW.  */
+extern int fputc (int __c, FILE *__stream);
+extern int putc (int __c, FILE *__stream);
+
+/* Write a character to stdout.
+
+   This function is a possible cancellation point and therefore not
+   marked with __THROW.  */
+extern int putchar (int __c);
 ```
+
+## 7 每次一行I/O
+
+下面两个函数提供每次输出一行的功能
+
+```c
+#include <stdio.h>
+__fortify_function __wur char *
+fgets (char *__restrict __s, int __n, FILE *__restrict __stream);
+char *gets(char *buf);
+```
+
+这两个函数都指定了缓冲区的地址，读入的行将送入其中。gets从标准输入读，而fgets从指定的流中读。gets是一个不安全的函数，没有传递给后方缓冲区的大小，现在已经被弃用了。
+
+```c
+#inlcude <stdio.h>
+extern int fputs (const char *__restrict __s, FILE *__restrict __stream);
+extern int puts (const char *__s);
+```
+
+虽然与gets相比，puts是安全的，但是因为gets已被弃用，puts也几乎不用了。
+
+## 8 标准I/O的效率
+
+## 9 二进制I/O
+
+对于二进制I/O操作，行I/O和字符I/O都不能满足我们的需求。
+
+```c
+#include <stdio.h>
+extern size_t fread (void *__restrict __ptr, size_t __size,
+		     size_t __n, FILE *__restrict __stream) __wur;
+extern size_t fwrite (const void *__restrict __ptr, size_t __size,
+		      size_t __n, FILE *__restrict __s);
+```
+
+这些函数有以下两种常见的用法。
+
+1. 读或写一个二进制数组
+2. 读或写一个结构
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+struct testData;
+typedef struct testData TESTDATA;
+struct testData{
+    char name[64];
+    int  age;
+};
+
+int main(){
+    FILE *fp = NULL;
+    fp = fopen("test.bits", "w+");
+    if(fp == NULL){
+        printf("fopen error.\n");
+        exit(0);
+    }
+
+    float data[10];
+    if(fwrite(&data[2], sizeof(float), 4, fp) != 4){
+        printf("fwrite error\n");
+        exit(0);
+    }
+    fclose(fp);
+    putchar('[');
+    for(int i = 0; i < 10; i++){
+        if(i == 0){
+            printf("%f", data[i]);
+        }else{
+            printf(",%f", data[i]);
+        }
+    }
+    putchar(']');
+    putchar('\n');
+    printf("fp: %p\n", fp);
+    printf("data: %lu\n", sizeof(data));
+
+    fp = fopen("test.bits", "r");
+    float data1[10] = {0};
+    if(fread(data1, sizeof(float), 4, fp) != 4){
+        printf("fread error\n");
+    }
+    putchar('[');
+    for(int i = 0; i < 10; i++){
+        if(i == 0){
+            printf("%f", data1[i]);
+        }else{
+            printf(",%f", data1[i]);
+        }
+    }
+    putchar(']');
+    putchar('\n');
+    fclose(fp);
+
+    fp = fopen("testStruct.bits", "w+");
+    if(fp == NULL){
+        printf("fopen error.\n");
+        exit(0);
+    }
+    TESTDATA data2 = {0};
+    data2.age = 24;
+    strncpy(data2.name, "huanglin", sizeof(data2.name));
+    if(fwrite(&data2, sizeof(data2), 1, fp) != 1){
+        printf("fwrite error.\n");
+        exit(0);
+    }
+    fclose(fp);
+
+    fp = fopen("testStruct.bits", "r+");
+    if(fp == NULL){
+        printf("fopen error.\n");
+        exit(0);
+    }
+    TESTDATA data3 = {0};
+    if(fread(&data3, sizeof(data3), 1, fp) != 1){
+        printf("fread error.\n");
+        exit(0);
+    }
+    printf("data3.name: %s\n", data3.name);
+    printf("data3.age: %d\n", data3.age);
+
+    return 0;
+}
+```
+
+这两个函数只能用在同一个系统中，对于网络互联的两个系统来说可能是不能正常工作的。
+
+1. 在一个结构中，同一成员的偏移量可能随编译程序和系统的不同而不同。
+2. 用来存储多字节整数和浮点数的二进制格式在不同的系统中也可能不同。
+
+## 10 定位流
+
+有3种方法定位标准流I/O流
+
+1. ftell和fseek函数。它们都假设文件的位置可以存放在一个长整型中。
+2. ftello和fseeko函数。使用off_t数据类型代替了长整型
+3. fgetpos和fsetpos函数。他们使用一个抽象数据类型来记录文件的位置。需要移植到非
+   UNIX系统上运行的应用程序应该使用这两个函数
+
+## 11 格式化I/O
+
+## 12 临时文件
+
+## 13 内存流
 
 ## 专有名词
 
