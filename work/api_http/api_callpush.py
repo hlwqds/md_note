@@ -331,7 +331,7 @@ def callinCrIvrTest():
 	p = ApiPost(auth_info, domain, version, dataType)
 	postReqCaller = CommonPostModel(callId, ccNumber, ccgeid, switchNumber, True)
 	pushup(p, postReqCaller.genQueryCalledInfo(step, 99, caller, isCaller, number, called, int(time())))
- 
+
 	callType = 5
 	ivrFlowId = 1
 	ivrQueryId = 1
@@ -344,9 +344,9 @@ def callinCrIvrTest():
 	dic = ivr.genCommonIvrInfo(step, caller, callerType, isCaller, number, called, calledType,
 			int(time()), ivrQueryId, usrQueryId, inputKeys, variables)
 	pushup(p, dic)
-	
+
 	time.sleep(2)
- 
+
 	ivr = CommonIvrPostModel(callId, ccNumber, ccgeid, switchNumber, callType, ivrFlowId)
 	dic = ivr.genKeyBackInfo(step, caller, callerType, isCaller, number, called, calledType,
 			int(time()), ivrQueryId, usrQueryId, inputKeys, variables)
@@ -444,24 +444,24 @@ def callinTransferTest():
 
 	postReqCaller = CommonPostModel(callId, ccNumber, eid, switchNumber, False)
 	pushup(p, postReqCaller.genCallingInfo(step, type, caller, isCaller, number, called, int(time())))
- 	pushup(p, postReqCaller.genFaliedInfo(step, type, caller, isCaller, number, called, int(time())))
+	pushup(p, postReqCaller.genFaliedInfo(step, type, caller, isCaller, number, called, int(time())))
 	number = "1004"
- 	called = "1004"
+	called = "1004"
 	step += 1
 	pushup(p, postReqCaller.genCallingInfo(step, type, caller, isCaller, number, called, int(time())))
- 	pushup(p, postReqCaller.genFaliedInfo(step, type, caller, isCaller, number, called, int(time())))
+	pushup(p, postReqCaller.genFaliedInfo(step, type, caller, isCaller, number, called, int(time())))
 
 	number = "1003"
 	called = "1003"
 	step += 1
 	pushup(p, postReqCaller.genCallingInfo(step, type, caller, isCaller, number, called, int(time())))
- 	pushup(p, postReqCaller.genFaliedInfo(step, type, caller, isCaller, number, called, int(time())))
+	pushup(p, postReqCaller.genFaliedInfo(step, type, caller, isCaller, number, called, int(time())))
 
 	number = "1004"
- 	called = "1004"
+	called = "1004"
 	step += 1
 	pushup(p, postReqCaller.genCallingInfo(step, type, caller, isCaller, number, called, int(time())))
- 	pushup(p, postReqCaller.genEstablishedInfo(step, type, caller, isCaller, number, called, int(time())))
+	pushup(p, postReqCaller.genEstablishedInfo(step, type, caller, isCaller, number, called, int(time())))
 	pushup(p, postReqCaller.genHangupInfo(step, type, caller, isCaller, number, called, int(time())))
 
 callinCrIvrTest()
