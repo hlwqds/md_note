@@ -435,7 +435,7 @@ def callinTransferTest():
 	type = 5	#以前的推送的缺陷导致通话类型和中间的请求类型没有分开,所以这里type是通话类型
 	caller = "15861800293"
 	switchNumber = "02566699734"
-	isCalled = 1
+	isCaller = 0
 	number = "1003"
 	called = "1003"
 	step = 0
