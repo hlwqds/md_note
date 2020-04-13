@@ -428,6 +428,43 @@ def callinPbxCommonTest():
 	pushup(p, postReqCaller.genEstablishedInfo(step, type, caller, isCaller, number, called, int(time())))
 	pushup(p, postReqCaller.genHangupInfo(step, type, caller, isCaller, number, called, int(time())))
 
+def callinTransferTest():
+	eid = 65761
+	ccNumber = callId = str(time())
+	type = 5	#以前的推送的缺陷导致通话类型和中间的请求类型没有分开,所以这里type是通话类型
+	caller = "15861800293"
+	switchNumber = "02566699734"
+	isCaller = 1
+	number = "1003"
+	called = "1003"
+	step = 0
+
+	global auth_info, domain, version, dataType
+	p = ApiPost(auth_info, domain, version, dataType)
+
+	postReqCaller = CommonPostModel(callId, ccNumber, eid, switchNumber, False)
+	pushup(p, postReqCaller.genCallingInfo(step, type, caller, isCaller, number, called, int(time())))
+ 	pushup(p, postReqCaller.genFaliedInfo(step, type, caller, isCaller, number, called, int(time())))
+	number = "1004"
+ 	called = "1004"
+	step += 1
+	pushup(p, postReqCaller.genCallingInfo(step, type, caller, isCaller, number, called, int(time())))
+ 	pushup(p, postReqCaller.genFaliedInfo(step, type, caller, isCaller, number, called, int(time())))
+
+	number = "1003"
+	called = "1003"
+	step += 1
+	pushup(p, postReqCaller.genCallingInfo(step, type, caller, isCaller, number, called, int(time())))
+ 	pushup(p, postReqCaller.genFaliedInfo(step, type, caller, isCaller, number, called, int(time())))
+
+	number = "1004"
+ 	called = "1004"
+	step += 1
+	pushup(p, postReqCaller.genCallingInfo(step, type, caller, isCaller, number, called, int(time())))
+ 	pushup(p, postReqCaller.genEstablishedInfo(step, type, caller, isCaller, number, called, int(time())))
+	pushup(p, postReqCaller.genHangupInfo(step, type, caller, isCaller, number, called, int(time())))
+
 callinCrIvrTest()
 #callinCrCommonTest()
 #callinPbxCommonTest()
+callinTransferTest()
