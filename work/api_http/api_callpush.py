@@ -1,7 +1,7 @@
 #/usr/bin/python3
 from api_post_class import *
 from sys import exit
-from time import time
+import time
 import json
 
 auth_info = {}
