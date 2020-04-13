@@ -345,7 +345,7 @@ def callinCrIvrTest():
 			int(time()), ivrQueryId, usrQueryId, inputKeys, variables)
 	pushup(p, dic)
 
-	time.sleep(2)
+	sleep(2)
 
 	ivr = CommonIvrPostModel(callId, ccNumber, ccgeid, switchNumber, callType, ivrFlowId)
 	dic = ivr.genKeyBackInfo(step, caller, callerType, isCaller, number, called, calledType,
