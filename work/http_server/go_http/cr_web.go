@@ -45,10 +45,10 @@ func HandleCrWebReuqest(w http.ResponseWriter, r *http.Request){
 
 func main(){
 	server := http.Server{
-		Addr: "127.0.0.1:8777",
+		Addr: "172.27.0.3:8776",
 	}
 
-	http.HandleFunc("/cr_web", HandleCrWebReuqest)
+	http.HandleFunc("/cr_web/smm/ivr", HandleCrWebReuqest)
 
 	server.ListenAndServe()
 }
