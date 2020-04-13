@@ -1,0 +1,23 @@
+{
+	"addNewBatch":{
+		"appId":"e88cd1111b29c22b070d1077de485504",
+		"taskId":"831",
+		"tels":[
+			{
+				"tel":{
+				"customerTel":"15117946993",
+				"customerName":"黄琳",
+				"userData":"hlwqds"
+				}
+			},
+			{
+				"tel":{
+				"customerTel":"02557926532",
+				"customerName":"联通",
+				"userData":"联通"
+				}
+			}
+		]
+		
+	}
+}

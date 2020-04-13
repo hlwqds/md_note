@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+<node1>content1</node1>
+<node2 attribute="yes">content2</node2>
+<node3>
+<subnode>go</subnode>
+</node3>
+</root> 
