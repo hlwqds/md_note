@@ -134,6 +134,7 @@ class CommonPostModel():
 		self.number = number
 		self.called = called
 		self.timestamp = timestamp
+		return self._genFormatDict()
 
 class CommonIvrPostModel(CommonPostModel):
 	def __init__(self, callId, ccNumber, ccgeid, switchNumber, callType, ivrFlowId):
