@@ -1,7 +1,7 @@
 #/usr/bin/python3
 from api_post_class import *
 from sys import exit
-import time
+from time import *
 import json
 
 auth_info = {}
@@ -351,13 +351,13 @@ def callinCrIvrTest():
 	dic = ivr.genKeyBackInfo(step, caller, callerType, isCaller, number, called, calledType,
 			int(time()), ivrQueryId, usrQueryId, inputKeys, variables)
 	pushup(p, dic)
-	time.sleep(2)
+	sleep(2)
 
 	pushup(p, postReqCaller.genCallingInfo(step, type, caller, isCaller, number, called, int(time())))
-	time.sleep(2)
+	sleep(2)
 
 	pushup(p, postReqCaller.genEstablishedInfo(step, type, caller, isCaller, number, called, int(time())))
-	time.sleep(2)
+	sleep(2)
 
 	pushup(p, postReqCaller.genHangupInfo(step, type, caller, isCaller, number, called, int(time())))
 
