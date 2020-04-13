@@ -464,7 +464,7 @@ def callinTransferTest():
 	pushup(p, postReqCaller.genEstablishedInfo(step, type, caller, isCaller, number, called, int(time())))
 	pushup(p, postReqCaller.genHangupInfo(step, type, caller, isCaller, number, called, int(time())))
 
-callinCrIvrTest()
+#callinCrIvrTest()
 #callinCrCommonTest()
 #callinPbxCommonTest()
 callinTransferTest()
