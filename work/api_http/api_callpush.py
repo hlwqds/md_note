@@ -445,26 +445,40 @@ def callinTransferTest():
 
 	postReqCaller = CommonPostModel(callId, ccNumber, eid, switchNumber, False)
 	pushup(p, postReqCaller.genCallingInfo(step, type, caller, isCaller, number, called, int(time())))
+	sleep(2)
+
 	pushup(p, postReqCaller.genFaliedInfo(step, type, caller, isCaller, number, called, int(time())))
-	number = "1004"
-	called = "1004"
-	step += 1
-	pushup(p, postReqCaller.genCallingInfo(step, type, caller, isCaller, number, called, int(time())))
-	pushup(p, postReqCaller.genFaliedInfo(step, type, caller, isCaller, number, called, int(time())))
+	sleep(2)
 
 	number = "1004"
 	called = "1004"
 	step += 1
 	pushup(p, postReqCaller.genCallingInfo(step, type, caller, isCaller, number, called, int(time())))
-	pushup(p, postReqCaller.genFaliedInfo(step, type, caller, isCaller, number, called, int(time())))
+	sleep(2)
 
+	pushup(p, postReqCaller.genFaliedInfo(step, type, caller, isCaller, number, called, int(time())))
+	sleep(2)
+
+	number = "1004"
+	called = "1004"
+	step += 1
+	pushup(p, postReqCaller.genCallingInfo(step, type, caller, isCaller, number, called, int(time())))
+	sleep(2)
+
+	pushup(p, postReqCaller.genFaliedInfo(step, type, caller, isCaller, number, called, int(time())))
+	sleep(2)
 
 	number = "1003"
 	called = "1003"
 	step += 1
 	pushup(p, postReqCaller.genCallingInfo(step, type, caller, isCaller, number, called, int(time())))
+	sleep(2)
+
 	pushup(p, postReqCaller.genEstablishedInfo(step, type, caller, isCaller, number, called, int(time())))
+	sleep(2)
+
 	pushup(p, postReqCaller.genHangupInfo(step, type, caller, isCaller, number, called, int(time())))
+	sleep(2)
 
 #callinCrIvrTest()
 #callinCrCommonTest()

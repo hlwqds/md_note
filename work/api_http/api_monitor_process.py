@@ -12,19 +12,19 @@ domain = "58.240.254.106:4080"
 version = "20161021"
 dataType = "json"
 
-commonWorkNumber = "8899"
+commonWorkNumber = "6677"
 #commonType = 1
 #commonDevice = '2104'
 commonType = 0
 #commonDevice = '18955394329'
 commonDevice = ''
 
-monitorWorkNumber = "hhhlll4"
+monitorWorkNumber = "hhhlll2"
 #monitorType = 1
 #monitorDevice = '2150'
-monitorType = 0
-#monitorDevice = '15861800293'
-monitorDevice = ''
+monitorType = 1
+monitorDevice = '15861800293'
+#monitorDevice = ''
 
 transferWorkNumber = "zt"
 transferType = 0
