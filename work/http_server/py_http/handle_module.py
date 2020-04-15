@@ -40,7 +40,7 @@ def HandleNumberQuery(req):
 	response_dict = { 
 		"retcode": 0,
 		"action": 0,
-		"number": "6666",
+		"number": "1031",
 		"workNumber": "",
 		"called": "",
 		"waitTime": 20,
